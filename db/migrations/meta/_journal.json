@@ -8,6 +8,13 @@
       "when": 1792503081644,
       "tag": "0000_friendly_ironclad",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792509571776,
+      "tag": "0001_protect_server_tables",
+      "breakpoints": true
     }
   ]
 }

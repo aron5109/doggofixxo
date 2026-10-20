@@ -53,3 +53,7 @@ export const userData = pgTable('user_data', {
   revision: integer('revision').notNull().default(0),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// enableRLS mutates each table. Keep the full table type for the Auth.js adapter.
+for (const table of [users, accounts, authSessions, verificationTokens, userData])
+  table.enableRLS();

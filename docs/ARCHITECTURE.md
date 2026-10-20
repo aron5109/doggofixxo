@@ -10,6 +10,10 @@ Auth.js Google uses the Drizzle adapter and database sessions. The server obtain
 
 PostgreSQL tables: `users`, `accounts`, `auth_sessions`, `verification_tokens`, `user_data`. The last table has one JSONB state document per user with a primary/foreign key, revision and update timestamp. Dogs, sessions and appointments are linked by containment under that owner and dog. This MVP favors atomic backups over normalized per-session tables. Limits: 12 dogs, 1,000 observations and 300 appointments per dog; 8 MB requests. Larger installations should normalize records and add pagination/retention.
 
+These five tables have row-level security enabled with no public API policies. Migrations revoke table privileges from `PUBLIC` and, when present, Supabase's `anon`, `authenticated` and `service_role` roles. This prevents access through Supabase's Data API, including its service-role RLS bypass. Auth.js and app queries use the server's table-owner connection; the authenticated Next.js API enforces per-account access. Supabase supplies PostgreSQL here, while Auth.js handles Google sign-in. The app does not use Supabase Auth, its browser API keys, or a separate object-storage bucket; compressed dog photos live inside the state document.
+
+`lib/database-config.ts` selects the explicit `DATABASE_URL` or Vercel integration aliases, removes client-only URL flags, and supplies verified TLS settings to the PostgreSQL driver. Migrations can use a session-pooler URL separately from runtime's transaction pooler. `docs/SUPABASE_SETUP.sql` is generated from the same migration files and records their checksums in Drizzle's journal so later CLI migrations recognize them.
+
 Demo and cloud stores are separate. No automatic merging occurs. Cloud records stay in memory rather than localStorage. Signing out removes the server session. Multiple demo tabs use last-write-wins storage; avoid simultaneous editing.
 
 ## Training model
@@ -28,4 +32,4 @@ The manifest and icons support installation. The worker caches public static ass
 
 ## Tests and remaining integration work
 
-Vitest covers records, progress, timers, recurrence and API authorization. API tests apply the committed migration in PGlite and mock authenticated identities/configuration while exercising actual PostgreSQL queries. Playwright tests production UI at desktop/mobile sizes, persistence and backup downloads/imports; axe scans check automatable accessibility rules. OAuth consent, real remote database connectivity and published Vercel deployment need external credentials and are not proven by these tests.
+Vitest covers records, progress, timers, recurrence, database configuration and API authorization. API tests apply the committed migrations in PGlite and mock authenticated identities/configuration while exercising actual PostgreSQL queries. SQL setup tests also check repeatability, data preservation and Supabase API-role denial. Playwright tests production UI at desktop/mobile sizes, persistence and backup downloads/imports; axe scans check automatable accessibility rules. OAuth consent, real remote database connectivity and published Vercel deployment need external access and are not proven by these tests.

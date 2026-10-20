@@ -38,14 +38,16 @@ Browser tests run against the production build. Use system Chromium, `npx playwr
 
 Copy `.env.example` to `.env.local`, supply values privately, and restart Next.js:
 
-| Variable             | Purpose                                          |
-| -------------------- | ------------------------------------------------ |
-| `DATABASE_URL`       | PostgreSQL URL with your provider’s TLS settings |
-| `AUTH_SECRET`        | Strong random application secret                 |
-| `AUTH_GOOGLE_ID`     | Google OAuth web client ID                       |
-| `AUTH_GOOGLE_SECRET` | Google OAuth client secret                       |
+| Variable                         | Purpose                               |
+| -------------------------------- | ------------------------------------- |
+| `DATABASE_URL` or `POSTGRES_URL` | Server-side PostgreSQL connection URL |
+| `AUTH_SECRET`                    | Strong random application secret      |
+| `AUTH_GOOGLE_ID`                 | Google OAuth web client ID            |
+| `AUTH_GOOGLE_SECRET`             | Google OAuth client secret            |
 
-All four must be present to enable cloud mode. Use `openssl rand -base64 32` to generate a secret. Never commit secrets or backups. Drizzle reads exported process variables, not `.env.local` automatically. In a private shell, load them with `set -a; . ./.env.local; set +a` (without shell tracing), then run `npm run db:migrate` to apply the committed migration.
+A database URL and all three Auth.js settings must be present to enable cloud mode. Supabase's Vercel integration supplies `POSTGRES_URL` automatically; there is no need to duplicate it as `DATABASE_URL`. Supabase API keys do not replace the Google/Auth.js settings. Use `openssl rand -base64 32` to generate an application secret. Never commit secrets or backups.
+
+For Supabase, follow [the setup guide](docs/SUPABASE_SETUP.md), including the SQL Editor option. For command-line migrations, Drizzle reads exported process variables, not `.env.local` automatically. In a private shell, load them with `set -a; . ./.env.local; set +a` (without shell tracing), then run `npm run db:migrate`. Migrations prefer `POSTGRES_URL_NON_POOLING` over the integration's transaction pooler. An explicit `DATABASE_URL` overrides integration variables for both runtime and migrations; `DATABASE_MIGRATION_URL` can select a separate administrative connection to that same database. Remote connections verify TLS; `DATABASE_SSL_CA` can supply a trusted provider root certificate when required.
 
 Register the exact Google callback: `http://localhost:3000/api/auth/callback/google` locally and `https://YOUR_DOMAIN/api/auth/callback/google` in production. Optional `AUTH_URL` sets a canonical origin. On non-Vercel proxies, configure Auth.js trusted-host handling according to its documentation.
 
@@ -53,7 +55,7 @@ Sign-in is available from the demo banner and Profile when cloud mode is configu
 
 ## Vercel
 
-Import **aron5109/doggofixxo** as a Next.js project, select Node 24, install with `npm ci` and build with `npm run build`. No cloud secrets are needed for a deployed local demo. For cloud accounts, configure the four variables, apply the database migration, register the production callback and redeploy. A local build does not establish a successful deployment.
+Import **aron5109/doggofixxo** as a Next.js project, select Node 24, install with `npm ci` and build with `npm run build`. No cloud secrets are needed for a deployed local demo. For cloud accounts, configure the database connection and three Auth.js settings, apply the database migrations, register the production callback and redeploy. Supabase provides PostgreSQL; no additional Neon database or Vercel Storage is required. A local build does not establish a successful deployment.
 
 See [deployment](docs/DEPLOYMENT.md), [architecture](docs/ARCHITECTURE.md), [training research](docs/TRAINING_RESEARCH.md) and [brand guide](docs/BRAND_GUIDE.md).
 

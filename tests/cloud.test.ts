@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
+import { readMigrationFiles } from 'drizzle-orm/migrator';
 const identity = vi.hoisted(() => ({ user: null as string | null }));
 vi.mock('@/auth', () => ({
   auth: async () => (identity.user ? { user: { id: identity.user } } : null),
@@ -25,9 +25,10 @@ const request = (state = sampleState(), revision = 0, extra = {}) =>
     body: JSON.stringify({ state, revision, ...extra }),
   });
 beforeAll(async () => {
-  const migration = readFileSync('db/migrations/0000_friendly_ironclad.sql', 'utf8');
-  for (const statement of migration.split('--> statement-breakpoint'))
-    if (statement.trim()) await db!.execute(sql.raw(statement));
+  for (const migration of readMigrationFiles({ migrationsFolder: './db/migrations' })) {
+    for (const statement of migration.sql)
+      if (statement.trim()) await db!.execute(sql.raw(statement));
+  }
   await db!.insert(users).values([
     { id: 'alice', email: 'alice@example.test' },
     { id: 'bob', email: 'bob@example.test' },
