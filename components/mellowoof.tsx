@@ -9,7 +9,6 @@ import {
   CalendarDays,
   Lightbulb,
   UserRound,
-  PawPrint,
   Plus,
   ArrowRight,
   ChevronRight,
@@ -50,6 +49,7 @@ import { tips, tipGroups } from '@/lib/tips';
 import { references } from '@/lib/references';
 import { Onboarding, ProfileFields, ConcernFields } from './onboarding';
 import { DogArt } from './dog-art';
+import { BrandLogo } from './brand-logo';
 import { Button } from './ui/button';
 import { Modal } from './ui/dialog';
 import { LessonPlayer } from './lesson-player';
@@ -207,7 +207,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
         {accountBanner}
         {alerts}
         <div id="main" className="loading-screen">
-          <PawPrint size={38} />
+          <BrandLogo mark decorative className="loading-brand" />
           <h1>{error ? 'Let’s keep your records safe.' : 'Finding your little steps…'}</h1>
           {!error && <p>Just a moment.</p>}
         </div>
@@ -292,10 +292,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
       <div className="app-layout">
         <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
           <button className="brand" onClick={() => navigate('Home')} aria-label="Mellowoof home">
-            <PawPrint size={31} fill="currentColor" />
-            <span>
-              mellowoof<small>Little steps. Happier tails.</small>
-            </span>
+            <BrandLogo decorative />
           </button>
           <div className="sidebar-rule" />
           <span className="sidebar-label">YOUR LITTLE WORLD</span>
@@ -336,7 +333,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
         <div className="main-column">
           <header className="topbar">
             <div className="mobile-brand">
-              <PawPrint size={23} fill="currentColor" /> mellowoof
+              <BrandLogo mark decorative /> mellowoof
             </div>
             <div className="breadcrumb">
               Your little world <ChevronRight size={13} />
@@ -1016,7 +1013,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
             </motion.div>
             <footer className="app-footer">
               <span>
-                <PawPrint size={14} /> Little steps. Happier tails.
+                <BrandLogo mark decorative className="footer-mark" /> Little steps. Happier tails.
               </span>
               <small>Made with kindness, for you and your pup.</small>
             </footer>

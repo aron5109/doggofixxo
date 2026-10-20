@@ -1,9 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { ArrowRight, Cloud, PawPrint, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Cloud, ShieldCheck } from 'lucide-react';
 import { DogArt } from './dog-art';
 import { Button } from './ui/button';
+import { BrandLogo } from './brand-logo';
 
 export function SignIn({ available, error }: { available: boolean; error?: string }) {
   const [pending, setPending] = useState(false);
@@ -21,8 +22,7 @@ export function SignIn({ available, error }: { available: boolean; error?: strin
   return (
     <main id="main" className="welcome sign-in-screen">
       <div className="welcome-brand">
-        <PawPrint size={31} fill="currentColor" aria-hidden="true" /> mellowoof
-        <span>Little steps. Happier tails.</span>
+        <BrandLogo priority />
       </div>
       <section className="onboarding-card centered" aria-labelledby="sign-in-title">
         <div className="welcome-art" aria-hidden="true">

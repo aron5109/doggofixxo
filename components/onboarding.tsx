@@ -1,9 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { ArrowRight, ArrowLeft, Heart, Check, Upload, PawPrint } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Heart, Check, Upload } from 'lucide-react';
 import { categories, profileSchema, type Profile } from '@/lib/model';
 import { DogArt, avatarNames } from './dog-art';
 import { Button } from './ui/button';
+import { BrandLogo } from './brand-logo';
 export const newProfile = (): Profile => ({
   id: crypto.randomUUID(),
   name: '',
@@ -232,8 +233,7 @@ export function Onboarding({
   return (
     <main id="main" className="welcome">
       <div className="welcome-brand">
-        <PawPrint size={28} fill="currentColor" /> mellowoof
-        <span>Little steps. Happier tails.</span>
+        <BrandLogo priority />
       </div>
       <section className={`onboarding-card ${step === 0 || step === 3 ? 'centered' : ''}`}>
         {step > 0 && (

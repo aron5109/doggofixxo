@@ -1,5 +1,5 @@
 /* Cache only public assets. Never cache authentication, APIs, or personal HTML. */
-const CACHE = 'mellowoof-public-v2';
+const CACHE = 'mellowoof-public-v3';
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
