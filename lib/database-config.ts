@@ -1,3 +1,5 @@
+import { supabaseRootCertificates } from './supabase-ca';
+
 type Environment = Record<string, string | undefined>;
 type DatabasePurpose = 'runtime' | 'migration';
 
@@ -36,7 +38,14 @@ export function getDatabaseConnection(
   }
   const local = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(parsed.hostname);
   const mode = parsed.searchParams.get('sslmode') ?? parsed.searchParams.get('ssl');
-  const ca = environment.DATABASE_SSL_CA?.replace(/\\n/g, '\n');
+  // Supabase's production roots are not part of Node's public CA store. Scope
+  // that trust to its documented database hosts, with an explicit CA override.
+  const supabase = /^(?:db\.[a-z0-9-]+\.supabase\.co|[a-z0-9-]+\.pooler\.supabase\.com)$/i.test(
+    parsed.hostname,
+  );
+  const ca =
+    environment.DATABASE_SSL_CA?.trim().replace(/\\n/g, '\n') ||
+    (supabase ? supabaseRootCertificates : undefined);
   const ssl =
     local && (!mode || mode === 'disable' || mode === 'false')
       ? (false as const)

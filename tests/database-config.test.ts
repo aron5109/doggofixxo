@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { X509Certificate } from 'node:crypto';
+import { createSecureContext } from 'node:tls';
 import { getDatabaseConnection, getMigrationCredentials } from '../lib/database-config';
 import { hasCloudConfiguration } from '../lib/cloud';
+import { supabaseRootCertificates } from '../lib/supabase-ca';
 
 const transaction =
   'postgres://test_user:test_password@pooler.example.test:6543/postgres?sslmode=require&supa=base-pooler.x&pgbouncer=true';
@@ -64,6 +67,55 @@ describe('Supabase and Vercel database configuration', () => {
         DATABASE_SSL_CA: 'BEGIN\\ntrusted-certificate\\nEND',
       })!.ssl,
     ).toEqual({ rejectUnauthorized: true, ca: 'BEGIN\ntrusted-certificate\nEND' });
+  });
+  it.each(['aws-0-eu-central-2.pooler.supabase.com', 'db.example-project.supabase.co'])(
+    'trusts the official production roots for the Supabase database host %s',
+    (host) => {
+      const environment = { POSTGRES_URL: transaction.replace('pooler.example.test', host) };
+      const expected = { rejectUnauthorized: true, ca: supabaseRootCertificates };
+      expect(getDatabaseConnection(environment)!.ssl).toEqual(expected);
+      expect(getMigrationCredentials(environment)).toMatchObject({ ssl: expected });
+    },
+  );
+  it.each([
+    'aws-0-eu-central-2.pooler.supabase.com.attacker.test',
+    'db.project.supabase.co.attacker.test',
+    'evilpooler.supabase.com',
+    'other.supabase.co',
+  ])('does not extend Supabase certificate trust to %s', (host) => {
+    expect(
+      getDatabaseConnection({ POSTGRES_URL: transaction.replace('pooler.example.test', host) })!
+        .ssl,
+    ).toEqual({ rejectUnauthorized: true });
+  });
+  it('allows an explicit CA to override the bundled Supabase trust', () => {
+    const environment = {
+      POSTGRES_URL: transaction.replace('pooler.example.test', 'aws-0-test.pooler.supabase.com'),
+      DATABASE_SSL_CA: '  BEGIN\\ncustom-certificate\\nEND\n',
+    };
+    const expected = { rejectUnauthorized: true, ca: 'BEGIN\ncustom-certificate\nEND' };
+    expect(getDatabaseConnection(environment)!.ssl).toEqual(expected);
+    expect(getMigrationCredentials(environment)).toMatchObject({ ssl: expected });
+    expect(getDatabaseConnection({ ...environment, DATABASE_SSL_CA: '  ' })!.ssl).toEqual({
+      rejectUnauthorized: true,
+      ca: supabaseRootCertificates,
+    });
+  });
+  it('bundles the intact official 2021 and 2025 production CA certificates', () => {
+    const certificates = supabaseRootCertificates.match(
+      /-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g,
+    )!;
+    expect(certificates).toHaveLength(2);
+    const roots = certificates.map((pem) => new X509Certificate(pem));
+    expect(roots.map((root) => root.fingerprint256)).toEqual([
+      '80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA',
+      '5F:9B:77:95:1A:7A:A1:30:3F:9B:58:EE:A9:BF:A8:9E:35:8C:FD:C1:5F:97:86:FF:10:D4:93:0A:72:2C:9A:E2',
+    ]);
+    for (const root of roots) {
+      expect(root.ca).toBe(true);
+      expect(root.verify(root.publicKey)).toBe(true);
+    }
+    expect(() => createSecureContext({ ca: supabaseRootCertificates })).not.toThrow();
   });
   it('allows local development without TLS', () => {
     expect(

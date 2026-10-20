@@ -34,6 +34,12 @@ Redeploy after the GitHub update and environment changes. Verify Google sign-in,
 
 Local tests verify migrations and authorization using embedded PostgreSQL. They do not apply these tables to your Supabase project or verify the deployed Google flow.
 
+## If sign-in logs report SELF_SIGNED_CERT_IN_CHAIN
+
+The database connection failed certificate verification before Auth.js could read or save an account. Empty `accounts` and `users` tables can be expected at this point. Deploy the latest `main`: the app includes Supabase's official 2021 and 2025 production root certificates for its hosted database and shared-pooler endpoints, with certificate and hostname verification enabled. Both runtime requests and migrations use the same trust settings. No SQL table changes are required.
+
+For a custom database certificate, `DATABASE_SSL_CA` explicitly overrides the bundled roots. Use the certificate obtained from the provider's trusted dashboard, in PEM format. After redeploying, try Google sign-in, create a dog, and reload to confirm database persistence.
+
 ## If sign-in is temporarily unavailable
 
 Open `https://doggofixxo.vercel.app/api/setup-status` on the deployed site. It reports only missing/invalid setting names, the Vercel environment, and the deployment's short Git commit. It never returns credentials or account data. `configuration_ready` confirms settings are present and the database URL parses; it does not test Google consent or a live database connection.
