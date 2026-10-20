@@ -1,41 +1,12 @@
-import type { Category } from './model';
-import type { ReferenceId } from './references';
-export type Step = { title: string; seconds: number; instruction: string; success: string };
-export type Lesson = {
-  id: string;
-  title: string;
-  category: Category;
-  subtitle: string;
-  objective: string;
-  equipment: string[];
-  preparation: string;
-  safety: string;
-  discomfort: string;
-  easier: string;
-  harder: string;
-  reinforcement: string;
-  evidence: string;
-  sources: ReferenceId[];
-  steps: [Step, Step, Step];
-};
-const step = (title: string, seconds: number, instruction: string, success: string): Step => ({
-  title,
-  seconds,
-  instruction,
-  success,
-});
-const shared = {
-  discomfort:
-    'Pause for freezing, turning away, lip licking, tucked tail, panting unrelated to heat, or refusing a normally welcome treat. Look at the whole dog and context.',
-  easier:
-    'Stop, offer space and rest. Next time, reduce intensity, distance or duration until your dog can choose to participate comfortably.',
-  harder:
-    'After relaxed success on separate days, change just one small thing. Return to an easier step if comfort changes.',
-  reinforcement:
-    'Reward each comfortable attempt while learning. Once fluent, vary food rewards gradually and keep praise, choice and useful real-life rewards.',
-  evidence:
-    'A practical exercise based on reward-based learning and gradual exposure. This branded lesson is not a separately validated clinical protocol.',
-};
+import { advancedLessons } from './advanced-lessons';
+import {
+  type Lesson,
+  type LessonCategory,
+  lessonDefaults as shared,
+  makeStep as step,
+} from './lesson-types';
+export { lessonLevels, lessonCategories } from './lesson-types';
+export type { Lesson, LessonLevel, LessonCategory, Step } from './lesson-types';
 export const lessons: Lesson[] = [
   {
     ...shared,
@@ -547,27 +518,50 @@ export const lessons: Lesson[] = [
       ),
     ],
   },
+  ...advancedLessons,
 ];
 export const lessonById = (id: string) => lessons.find((lesson) => lesson.id === id);
 export const durationMinutes = (lesson: Lesson) =>
   Math.ceil(lesson.steps.reduce((sum, s) => sum + s.seconds, 0) / 60);
-export const categoryMeta: Record<Category, { emoji: string; color: string; description: string }> =
-  {
-    Barking: {
-      emoji: '🔔',
-      color: 'peach',
-      description: 'A little less noise, a little more calm.',
-    },
-    'Separation worries': {
-      emoji: '🏡',
-      color: 'sage',
-      description: 'Build comfort, one tiny goodbye at a time.',
-    },
-    Chewing: {
-      emoji: '🦴',
-      color: 'butter',
-      description: 'Good choices for those busy little jaws.',
-    },
-    Walking: { emoji: '🌿', color: 'sage', description: 'Find your rhythm, side by side.' },
-    Bathing: { emoji: '🫧', color: 'lavender', description: 'Gentle care, at your pup’s pace.' },
-  };
+export const categoryMeta: Record<
+  LessonCategory,
+  { emoji: string; color: string; description: string }
+> = {
+  Barking: {
+    emoji: '🔔',
+    color: 'peach',
+    description: 'A little less noise, a little more calm.',
+  },
+  'Separation worries': {
+    emoji: '🏡',
+    color: 'sage',
+    description: 'Build comfort, one tiny goodbye at a time.',
+  },
+  Chewing: {
+    emoji: '🦴',
+    color: 'butter',
+    description: 'Good choices for those busy little jaws.',
+  },
+  Walking: { emoji: '🌿', color: 'sage', description: 'Find your rhythm, side by side.' },
+  Bathing: { emoji: '🫧', color: 'lavender', description: 'Gentle care, at your pup’s pace.' },
+  'Recall & focus': {
+    emoji: '🎯',
+    color: 'peach',
+    description: 'Build attention, returning and reliable releases in comfortable stages.',
+  },
+  'Everyday skills': {
+    emoji: '✨',
+    color: 'sage',
+    description: 'Take familiar skills into thoughtful everyday routines.',
+  },
+  'Scent & enrichment': {
+    emoji: '🔎',
+    color: 'butter',
+    description: 'Let the nose lead through safe, rewarding searches.',
+  },
+  'Cooperative care': {
+    emoji: '🤝',
+    color: 'lavender',
+    description: 'Build useful care skills with voluntary participation and clear pauses.',
+  },
+};

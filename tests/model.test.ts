@@ -167,9 +167,10 @@ describe('calendar recurrence', () => {
   });
 });
 describe('content and owner checks', () => {
-  it('includes fifteen complete lessons and real supporting guidance', () => {
-    expect(lessons).toHaveLength(15);
-    expect(new Set(lessons.map((l) => l.category)).size).toBe(5);
+  it('includes the original foundation and expanded skill lessons with supporting guidance', () => {
+    expect(lessons.filter((lesson) => lesson.level === 'Foundation')).toHaveLength(15);
+    expect(lessons.filter((lesson) => lesson.level !== 'Foundation')).toHaveLength(20);
+    expect(new Set(lessons.map((l) => l.category)).size).toBe(9);
     for (const lesson of lessons) {
       expect(lesson.steps).toHaveLength(3);
       for (const step of lesson.steps) {
@@ -180,10 +181,10 @@ describe('content and owner checks', () => {
       expect(lesson.evidence).toContain('not a separately validated');
     }
   });
-  it('has at least 64 unique tips in all ten groups', () => {
-    expect(tips.length).toBeGreaterThanOrEqual(64);
+  it('has the expanded unique tip catalog in all sixteen groups', () => {
+    expect(tips.length).toBeGreaterThanOrEqual(160);
     expect(new Set(tips.map((t) => t.text)).size).toBe(tips.length);
-    expect(Object.keys(tipGroups)).toHaveLength(10);
+    expect(Object.keys(tipGroups)).toHaveLength(16);
   });
   it('requires a session owner', () => {
     expect(() => requireOwner(null)).toThrow('Authentication required');

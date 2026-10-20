@@ -385,7 +385,7 @@ export function Calendar({
                 <div
                   className="mini-progress"
                   role="progressbar"
-                  aria-label="Foundation progress"
+                  aria-label="Practice progress"
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={

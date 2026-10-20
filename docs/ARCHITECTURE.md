@@ -1,6 +1,6 @@
 # Architecture
 
-Next.js App Router serves React/TypeScript, Tailwind CSS, shadcn-style primitives using CVA and Radix, Lucide icons and Motion. Nunito is local. The root client owns navigation; onboarding, calendar and the lesson player are separate components. Typed content is in `lib/lessons.ts`, `lib/tips.ts` and `lib/references.ts`. `lib/model.ts` holds validation, progress, recurrence and timer calculations.
+Next.js App Router serves React/TypeScript, Tailwind CSS, shadcn-style primitives using CVA and Radix, Lucide icons and Motion. Nunito is local. The root client owns navigation; onboarding, calendar and the lesson player are separate components. `lib/lesson-types.ts` defines the shared lesson contract; `lib/lessons.ts` combines the existing foundation catalog with `lib/advanced-lessons.ts`. Tips and references live in `lib/tips.ts` and `lib/references.ts`. `lib/model.ts` holds validation, progress, recurrence and timer calculations.
 
 ## Identity and persistence
 
@@ -17,6 +17,10 @@ These five tables have row-level security enabled with no public API policies. M
 Account records stay in React memory rather than localStorage and are fetched from the authenticated API on each reload. Failed loads block editing. Save failures pause subsequent writes and preserve the unsaved in-memory state for export; expired sessions offer sign-in again. Signing out removes the server session and returns to the Google sign-in screen.
 
 ## Training model
+
+The catalog has Foundation, Intermediate and Advanced levels and nine training topics. The original five onboarding concern values remain unchanged. New training topics are catalog metadata rather than persisted profile concerns, so existing version-1 backups and accounts remain compatible. Lesson IDs and original tip IDs remain stable. Favorites allow up to 500 IDs, accommodating the expanded tip catalog. No database migration is required for catalog additions.
+
+Each lesson has behavioral readiness and prerequisite lesson IDs. Browsing and opening intermediate/advanced lessons remains available; prerequisite records are guidance rather than a hard gate. Automatic recommendations prefer incomplete foundation lessons matching the dog's concerns, then suggest later skills only when their prerequisite records are complete. Recorded completion never establishes clinical readiness: the dog's comfort and the lesson's behavioral prerequisites take precedence. Trainer links are further reading for original exercises, not endorsements or live-verified page citations.
 
 Sessions have a UUID, lesson, timestamps, observed local day, active timer duration, outcome, criterion observation, milestone, notes and computed progress snapshot. UUIDs make feedback recording idempotent. Absolute deadlines survive background-tab throttling; intervals only render the display. Expiry never advances the exercise or implies success. Untimed and skipped intervals do not add active duration.
 

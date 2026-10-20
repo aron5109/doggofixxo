@@ -59,7 +59,7 @@ export const stateSchema = z
     version: z.literal(1),
     dogs: z.array(dogSchema).max(12),
     activeDogId: id.nullable(),
-    favorites: z.array(z.string().max(80)).max(100),
+    favorites: z.array(z.string().max(80)).max(500),
   })
   .superRefine((value, ctx) => {
     if (new Set(value.dogs.map((d) => d.id)).size !== value.dogs.length)

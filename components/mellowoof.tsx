@@ -44,7 +44,17 @@ import {
   occurrences,
   parseBackup,
 } from '@/lib/model';
-import { type Lesson, lessons, categoryMeta, durationMinutes, lessonById } from '@/lib/lessons';
+import {
+  type Lesson,
+  type LessonCategory,
+  type LessonLevel,
+  lessons,
+  lessonCategories,
+  lessonLevels,
+  categoryMeta,
+  durationMinutes,
+  lessonById,
+} from '@/lib/lessons';
 import { tips, tipGroups } from '@/lib/tips';
 import { references } from '@/lib/references';
 import { Onboarding, ProfileFields, ConcernFields } from './onboarding';
@@ -70,7 +80,8 @@ export function Mellowoof({ account }: { account: { name: string } }) {
   const [eventDraft, setEventDraft] = useState<EventDraft | null>(null);
   const [editProfile, setEditProfile] = useState<Profile | null>(null);
   const [deleteDog, setDeleteDog] = useState(false);
-  const [category, setCategory] = useState('All');
+  const [category, setCategory] = useState<'All' | LessonCategory>('All');
+  const [level, setLevel] = useState<'All' | LessonLevel>('All');
   const [query, setQuery] = useState('');
   const [tipCategory, setTipCategory] = useState('All');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
@@ -94,6 +105,8 @@ export function Mellowoof({ account }: { account: { name: string } }) {
       if (commit(addDog(state, profile))) {
         setAdding(false);
         setCategory('All');
+        setLevel('All');
+        setQuery('');
         navigate('Training');
       }
     } catch (cause) {
@@ -226,10 +239,27 @@ export function Mellowoof({ account }: { account: { name: string } }) {
         {importDialog}
       </>
     );
+  const relevantFoundations = lessons.filter(
+    (item) => item.level === 'Foundation' && dog.concerns.some((c) => c === item.category),
+  );
   const recommended =
+    relevantFoundations.find((item) => !progressFor(dog.sessions, item.id).complete) ||
     lessons.find(
-      (l) => dog.concerns.includes(l.category) && !progressFor(dog.sessions, l.id).complete,
-    ) || lessons[0];
+      (item) =>
+        item.level !== 'Foundation' &&
+        !progressFor(dog.sessions, item.id).complete &&
+        item.prerequisites.every((id) => progressFor(dog.sessions, id).complete),
+    ) ||
+    relevantFoundations[0] ||
+    lessons[0];
+  const filteredLessons = lessons.filter(
+    (item) =>
+      (category === 'All' || item.category === category) &&
+      (level === 'All' || item.level === level) &&
+      `${item.title} ${item.subtitle} ${item.objective} ${item.category} ${item.level}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase()),
+  );
   const currentProgress = progressFor(dog.sessions, recommended.id);
   const startedLessons = lessons.filter((l) => dog.sessions.some((s) => s.lessonId === l.id));
   const overall = startedLessons.length
@@ -268,7 +298,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
         <div className="lesson-card-body">
           <div className="row between">
             <span className="eyebrow">
-              {durationMinutes(item)} MIN · {progress.complete ? 'MAINTENANCE' : 'FOUNDATION'}
+              {durationMinutes(item)} MIN · {item.level.toUpperCase()}
             </span>
             <span className="circle-arrow">
               <ArrowRight size={17} />
@@ -276,6 +306,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
           </div>
           <h3>{item.title}</h3>
           <p>{item.subtitle}</p>
+          {progress.complete && <small className="lesson-maintenance">Optional maintenance</small>}
           <div className="lesson-card-progress">
             <div className="progress-track">
               <span style={{ width: `${progress.percent}%` }} />
@@ -481,7 +512,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                             {overall}
                             <small>%</small>
                           </strong>
-                          <span>foundation progress</span>
+                          <span>practice progress</span>
                         </div>
                       </div>
                       <div className="journey-stats">
@@ -515,11 +546,13 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                           {categoryMeta[recommended.category].emoji}
                         </span>
                         <div>
-                          <span className="small muted">{recommended.category}</span>
+                          <span className="small muted">
+                            {recommended.level} · {recommended.category}
+                          </span>
                           <h3>{recommended.title}</h3>
                           <p>
                             {currentProgress.complete
-                              ? 'Foundation complete! Keep those good habits growing.'
+                              ? 'Milestones complete! Keep those good habits growing.'
                               : 'One comfortable moment at a time.'}
                           </p>
                         </div>
@@ -657,13 +690,17 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                           key={cat}
                           onClick={() => {
                             setCategory(cat);
+                            setLevel('All');
+                            setQuery('');
                             navigate('Training');
                           }}
                           className={categoryMeta[cat].color}
                         >
                           <span>{categoryMeta[cat].emoji}</span>
                           <strong>{cat}</strong>
-                          <small>3 gentle lessons</small>
+                          <small>
+                            {lessons.filter((item) => item.category === cat).length} lessons
+                          </small>
                           <ChevronRight size={15} />
                         </button>
                       ))}
@@ -677,10 +714,12 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                     <div>
                       <span className="eyebrow">KIND TRAINING. REAL CONNECTION.</span>
                       <h1>Little lessons. Lasting habits.</h1>
-                      <p className="muted">Choose a starting point. Your dog sets the pace.</p>
+                      <p className="muted">
+                        From first steps to advanced skills. Your dog sets the pace.
+                      </p>
                     </div>
                     <span className="soft-badge">
-                      <BookOpen size={16} /> 15 gentle lessons
+                      <BookOpen size={16} /> {lessons.length} lessons
                     </span>
                   </div>
                   <div className="library-note">
@@ -694,15 +733,15 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                     </p>
                   </div>
                   <div className="library-toolbar">
-                    <div className="filter-chips" aria-label="Training category">
-                      {['All', ...categories].map((cat) => (
+                    <div className="filter-chips" role="group" aria-label="Training level">
+                      {(['All', ...lessonLevels] as const).map((item) => (
                         <button
-                          key={cat}
-                          aria-pressed={category === cat}
-                          className={category === cat ? 'active' : ''}
-                          onClick={() => setCategory(cat)}
+                          key={item}
+                          aria-pressed={level === item}
+                          className={level === item ? 'active' : ''}
+                          onClick={() => setLevel(item)}
                         >
-                          {cat}
+                          {item === 'All' ? 'All levels' : item}
                         </button>
                       ))}
                     </div>
@@ -716,30 +755,49 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                       />
                     </label>
                   </div>
+                  <div
+                    className="filter-chips topic-filters"
+                    role="group"
+                    aria-label="Training category"
+                  >
+                    {(['All', ...lessonCategories] as const).map((cat) => (
+                      <button
+                        key={cat}
+                        aria-pressed={category === cat}
+                        className={category === cat ? 'active' : ''}
+                        onClick={() => setCategory(cat)}
+                      >
+                        {cat === 'All' ? 'All topics' : cat}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="small muted library-results" role="status">
+                    {filteredLessons.length} {filteredLessons.length === 1 ? 'lesson' : 'lessons'}
+                    {level === 'All' ? ' across all levels' : ` at ${level.toLowerCase()} level`}.
+                    Check each lesson’s readiness guidance before starting.
+                  </p>
                   {category !== 'All' && (
                     <p className="muted">
                       {categoryMeta[category as keyof typeof categoryMeta].description} These
                       exercises are complementary; switch to the one that fits the trigger.
                     </p>
                   )}
-                  <div className="lesson-grid">
-                    {lessons
-                      .filter(
-                        (l) =>
-                          (category === 'All' || l.category === category) &&
-                          `${l.title} ${l.subtitle}`.toLowerCase().includes(query.toLowerCase()),
-                      )
-                      .map(renderLessonCard)}
-                  </div>
-                  {!lessons.some(
-                    (l) =>
-                      (category === 'All' || l.category === category) &&
-                      `${l.title} ${l.subtitle}`.toLowerCase().includes(query.toLowerCase()),
-                  ) && (
+                  <div className="lesson-grid">{filteredLessons.map(renderLessonCard)}</div>
+                  {filteredLessons.length === 0 && (
                     <div className="empty-small">
                       <DogArt avatar={dog.avatar} className="empty-dog" />
                       <h2>No lessons found.</h2>
-                      <p>Try another word or category.</p>
+                      <p>Try another word, topic or level.</p>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setCategory('All');
+                          setLevel('All');
+                          setQuery('');
+                        }}
+                      >
+                        Show all lessons
+                      </Button>
                     </div>
                   )}
                   {dog.sessions.length > 0 && (
@@ -776,7 +834,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                             <span className="badge">
                               {session.outcome === 'difficult'
                                 ? 'Rest & reset'
-                                : `${session.progressSnapshot}% foundation`}
+                                : `${session.progressSnapshot}% progress`}
                             </span>
                             <ChevronRight size={17} />
                           </button>
@@ -794,7 +852,9 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                     <div>
                       <span className="eyebrow">A LITTLE WISDOM, A LOT OF LOVE</span>
                       <h1>Good things to know.</h1>
-                      <p className="muted">70 small ideas for a happier life together.</p>
+                      <p className="muted">
+                        {tips.length} small ideas for a happier life together.
+                      </p>
                     </div>
                     <Button
                       variant={favoritesOnly ? 'default' : 'secondary'}
@@ -863,7 +923,10 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                           </div>
                           <p>{tip.text}</p>
                           <a href={references[tip.source].url} target="_blank" rel="noreferrer">
-                            Read supporting guidance <ExternalLink size={13} />
+                            {['zak', 'stilwell', 'mcmillan', 'bat', 'cesar'].includes(tip.source)
+                              ? references[tip.source].title
+                              : 'Read supporting guidance'}{' '}
+                            <ExternalLink size={13} />
                           </a>
                         </article>
                       ))}
@@ -1041,6 +1104,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
           onClose={() => setLesson(null)}
           onSave={(session) => commit(recordSession(state, dog.id, session))}
           onSchedule={schedule}
+          onSelectLesson={setLesson}
         />
       )}
       {eventDraft && (
@@ -1148,7 +1212,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
             </p>
             <p>
               {Math.floor(sessionDetail.duration / 60)}m {sessionDetail.duration % 60}s active
-              practice · {sessionDetail.progressSnapshot}% foundation at this session
+              practice · {sessionDetail.progressSnapshot}% progress at this session
             </p>
             <p>
               {sessionDetail.observed
@@ -1167,7 +1231,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
               </div>
             )}
             <p className="small muted">
-              A completed foundation is a starting point for maintenance, not a guarantee that a
+              Completed milestones are a starting point for maintenance, not a guarantee that a
               behaviour is permanently resolved.
             </p>
           </>

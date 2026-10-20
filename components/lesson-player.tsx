@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   X,
 } from 'lucide-react';
-import { type Lesson, durationMinutes } from '@/lib/lessons';
+import { type Lesson, durationMinutes, lessonById } from '@/lib/lessons';
 import {
   type Dog,
   type TrainingSession,
@@ -29,12 +29,14 @@ export function LessonPlayer({
   onClose,
   onSave,
   onSchedule,
+  onSelectLesson,
 }: {
   lesson: Lesson;
   dog: Dog;
   onClose: () => void;
   onSave: (session: TrainingSession) => boolean;
   onSchedule: (lesson: Lesson, outcome: TrainingSession['outcome']) => void;
+  onSelectLesson: (lesson: Lesson) => void;
 }) {
   const [phase, setPhase] = useState<'overview' | 'training' | 'feedback' | 'done'>('overview');
   const [index, setIndex] = useState(0);
@@ -50,7 +52,11 @@ export function LessonPlayer({
   const saved = useRef(false);
   const elapsed = useRef(0);
   const runningSince = useRef<number | null>(null);
-  const foundation = progressFor(dog.sessions, lesson.id);
+  const progress = progressFor(dog.sessions, lesson.id);
+  const prerequisites = lesson.prerequisites.flatMap((id) => {
+    const prerequisite = lessonById(id);
+    return prerequisite ? [prerequisite] : [];
+  });
   const step = lesson.steps[index];
   const remaining = remainingSeconds(deadline, seconds, tick);
   useEffect(() => {
@@ -93,9 +99,9 @@ export function LessonPlayer({
       duration: Math.min(86400, Math.round(elapsed.current)),
       outcome,
       observed: outcome === 'great' && observed,
-      milestone: foundation.milestone,
+      milestone: progress.milestone,
       notes,
-      progressSnapshot: foundation.percent,
+      progressSnapshot: progress.percent,
     });
     if (result) {
       saved.current = true;
@@ -119,7 +125,7 @@ export function LessonPlayer({
         {phase === 'overview' && (
           <div className="lesson-overview">
             <div className="lesson-intro">
-              <span className="eyebrow">SMALL STEPS, AT YOUR PUP’S PACE</span>
+              <span className="eyebrow">{lesson.level.toUpperCase()} · AT YOUR DOG’S PACE</span>
               <h3>{lesson.subtitle}</h3>
               <p>{lesson.objective}</p>
             </div>
@@ -127,6 +133,32 @@ export function LessonPlayer({
               <ShieldCheck size={23} />
               <p>{lesson.safety}</p>
             </div>
+            <section className="lesson-readiness" aria-labelledby="lesson-readiness-title">
+              <h3 id="lesson-readiness-title">Before this lesson</h3>
+              <p>{lesson.readiness}</p>
+              {prerequisites.length > 0 && (
+                <>
+                  <h4>Skills to build on</h4>
+                  <ul className="prerequisite-list">
+                    {prerequisites.map((prerequisite) => (
+                      <li key={prerequisite.id}>
+                        <button onClick={() => onSelectLesson(prerequisite)}>
+                          {prerequisite.title} <ArrowRight size={14} aria-hidden="true" />
+                        </button>
+                        <small>
+                          {progressFor(dog.sessions, prerequisite.id).complete
+                            ? 'Milestones recorded'
+                            : 'Suggested earlier practice'}
+                        </small>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="small muted">
+                    Readiness means comfortable skills today; recorded progress is only a guide.
+                  </p>
+                </>
+              )}
+            </section>
             <h3>You’ll need</h3>
             <div className="tags">
               {lesson.equipment.map((item) => (
@@ -285,7 +317,7 @@ export function LessonPlayer({
                 </button>
               ))}
             </div>
-            {outcome === 'great' && !foundation.complete && (
+            {outcome === 'great' && !progress.complete && (
               <label className="checkbox-label">
                 <input
                   type="checkbox"
@@ -294,7 +326,7 @@ export function LessonPlayer({
                 />
                 <span>
                   I observed this comfortably:{' '}
-                  <strong>{lesson.steps[foundation.milestone].success}</strong>
+                  <strong>{lesson.steps[progress.milestone].success}</strong>
                 </span>
               </label>
             )}
@@ -317,8 +349,8 @@ export function LessonPlayer({
               />
             </label>
             <p className="small muted">
-              Foundation milestones need observed success on six separate days. Repeated taps and
-              timer completions do not advance progress.
+              Lesson milestones need observed success on six separate days. Repeated taps and timer
+              completions do not advance progress.
             </p>
             <Button className="full" disabled={!outcome} onClick={save}>
               Save our little step <Check size={18} />
@@ -341,14 +373,14 @@ export function LessonPlayer({
             <p>
               {outcome === 'difficult'
                 ? 'Give your pup a comfortable break. Your next suggestion is in two days, with an easier exercise.'
-                : foundation.complete
-                  ? 'Foundation complete! Keep those good habits growing with optional weekly practice.'
+                : progress.complete
+                  ? 'Milestones complete! Keep those good habits growing with optional weekly practice.'
                   : 'Your pup is learning. So are you. We’ll build on comfortable moments over separate days.'}
             </p>
             <div className="actions">
               <Button onClick={() => onSchedule(lesson, outcome!)}>
                 <CalendarPlus size={18} />{' '}
-                {foundation.complete ? 'Plan maintenance' : 'Plan next session'}
+                {progress.complete ? 'Plan maintenance' : 'Plan next session'}
               </Button>
               <Button variant="secondary" onClick={onClose}>
                 All done <ArrowRight size={17} />

@@ -1117,6 +1117,18 @@ small,
   border-color: var(--green);
   color: white;
 }
+.topic-filters {
+  margin-bottom: 16px;
+}
+.library-results {
+  margin-bottom: 20px;
+}
+.lesson-maintenance {
+  display: block;
+  font-size: 10px;
+  color: var(--green);
+  margin: -5px 0 12px;
+}
 .search-field {
   position: relative;
   display: flex;
@@ -1395,6 +1407,7 @@ small,
 }
 .gentle-promise p {
   font-size: 11px !important;
+  color: var(--green-dark);
   margin: 0;
 }
 .import-button {
@@ -1974,6 +1987,51 @@ fieldset > p {
 }
 .lesson-overview > p {
   font-size: 13px;
+}
+.lesson-readiness {
+  margin: 20px 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 17px;
+  background: #fffdf8;
+}
+.lesson-readiness h3,
+.lesson-readiness h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.lesson-readiness h4 {
+  margin-top: 16px;
+  font-size: 12px;
+}
+.lesson-readiness p {
+  margin: 0;
+  font-size: 12px;
+}
+.prerequisite-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.prerequisite-list li {
+  padding: 7px 0;
+}
+.prerequisite-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 800;
+  background: transparent;
+  border: 0;
+  padding: 7px 0;
+  text-align: left;
+}
+.prerequisite-list small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
 }
 .step-preview {
   list-style: none;
