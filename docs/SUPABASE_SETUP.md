@@ -33,3 +33,9 @@ The integration's existing `POSTGRES_URL` supplies database access. Supabase pub
 Redeploy after the GitHub update and environment changes. Verify Google sign-in, create a cloud dog, reload to confirm persistence, sign out, and use a second Google account to check isolation. Signed-out visitors see Google sign-in. All personal records require an authenticated account; no browser-local fallback is available. Existing JSON backups can be imported explicitly under Profile.
 
 Local tests verify migrations and authorization using embedded PostgreSQL. They do not apply these tables to your Supabase project or verify the deployed Google flow.
+
+## If sign-in is temporarily unavailable
+
+Open `https://doggofixxo.vercel.app/api/setup-status` on the deployed site. It reports only missing/invalid setting names, the Vercel environment, and the deployment's short Git commit. It never returns credentials or account data. `configuration_ready` confirms settings are present and the database URL parses; it does not test Google consent or a live database connection.
+
+For any name in `missing`, open the Vercel project's environment settings, confirm it has a nonempty value for **Production**, and redeploy the latest `main` deployment. Environment changes are applied to new deployments. If the database binding is missing, confirm the Supabase integration is connected to this Vercel project and enabled for Production. If an entry appears in `invalid`, correct the PostgreSQL connection URL privately. The Supabase API URL/key is not a PostgreSQL connection string. There is no need to rerun the SQL table setup for a missing environment binding.
