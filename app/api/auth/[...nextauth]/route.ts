@@ -2,7 +2,7 @@ import { handlers } from '@/auth';
 import { cloudConfigured } from '@/lib/cloud';
 const unavailable = () =>
   Response.json(
-    { error: 'Google sign-in is not configured. Local demo is available.' },
+    { error: 'Sign-in is temporarily unavailable. Please try again later.' },
     { status: 503 },
   );
 export const GET = cloudConfigured ? handlers.GET : unavailable;

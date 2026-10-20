@@ -109,7 +109,7 @@ describe('Supabase and Vercel database configuration', () => {
       'Invalid PostgreSQL',
     );
   });
-  it('leaves demo mode available with no database configuration', () => {
+  it('keeps account access unavailable without database configuration', () => {
     expect(getDatabaseConnection({})).toBeNull();
     expect(getMigrationCredentials({})).toEqual({ url: '' });
     expect(hasCloudConfiguration({})).toBe(false);

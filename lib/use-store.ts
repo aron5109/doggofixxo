@@ -1,43 +1,44 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { emptyState, parseBackup, stateSchema, STORAGE_KEY, type AppState } from './model';
-export function useStore(mode: 'demo' | 'cloud') {
+import { z } from 'zod';
+import { emptyState, stateSchema, type AppState } from './model';
+const responseSchema = z.object({ state: stateSchema, revision: z.number().int().nonnegative() });
+export function useStore() {
   const [state, setState] = useState<AppState>(emptyState);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(0);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const revision = useRef(0);
   const queue = useRef<Promise<void>>(Promise.resolve());
-  const blocked = useRef(false);
+  const blocked = useRef(true);
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setReady(false);
       setError('');
-      blocked.current = false;
       try {
-        let loaded: AppState;
-        if (mode === 'demo') {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          loaded = raw ? parseBackup(raw) : emptyState();
-        } else {
-          const response = await fetch('/api/state', { cache: 'no-store' });
-          if (!response.ok)
-            throw new Error('Cloud records could not be loaded. Check your connection and reload.');
-          const data = await response.json();
-          loaded = stateSchema.parse(data.state);
-          revision.current = data.revision;
-        }
+        const response = await fetch('/api/state', { cache: 'no-store' });
+        if (response.status === 401 && !cancelled) setSessionExpired(true);
+        if (!response.ok)
+          throw new Error(
+            response.status === 401
+              ? 'Your session has expired. Sign in again to open your records.'
+              : 'Your records could not be loaded. Check your connection and try again.',
+          );
+        const data = responseSchema.parse(await response.json());
         if (!cancelled) {
-          setState(loaded);
+          revision.current = data.revision;
+          blocked.current = false;
+          setState(data.state);
           setReady(true);
         }
-      } catch {
+      } catch (cause) {
         if (!cancelled)
           setError(
-            mode === 'demo'
-              ? 'Your saved data could not be read. It has not been overwritten. Export the original backup below or import a valid backup.'
-              : 'Cloud records could not be loaded. Check your connection and reload.',
+            cause instanceof Error && !(cause instanceof z.ZodError)
+              ? cause.message
+              : 'Your records could not be loaded. Please try again.',
           );
       }
     }
@@ -45,15 +46,16 @@ export function useStore(mode: 'demo' | 'cloud') {
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, []);
   useEffect(() => {
-    if (mode !== 'cloud' || (!pending && !error)) return;
+    if (!pending && !(ready && error)) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [mode, pending, error]);
+  }, [pending, ready, error]);
   const commit = useCallback(
     (next: AppState) => {
+      if (!ready) return false;
       const validated = stateSchema.safeParse(next);
       if (!validated.success) {
         setError(
@@ -61,27 +63,13 @@ export function useStore(mode: 'demo' | 'cloud') {
         );
         return false;
       }
-      if (mode === 'demo') {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          setError(
-            'This browser could not save the change. Export a backup and check available storage.',
-          );
-          return false;
-        }
-        setState(next);
-        setReady(true);
-        setError('');
-        return true;
-      }
       if (blocked.current) {
         setError(
-          'Cloud saving is paused after an error. Export your changes, then reload before importing them.',
+          'Saving is paused after an error. Export your changes, then reload before importing them.',
         );
         return false;
       }
-      setState(next);
+      setState(validated.data);
       setPending((n) => n + 1);
       queue.current = queue.current
         .then(async () => {
@@ -90,12 +78,20 @@ export function useStore(mode: 'demo' | 'cloud') {
             const response = await fetch('/api/state', {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ state: next, revision: revision.current }),
+              body: JSON.stringify({ state: validated.data, revision: revision.current }),
             });
             const result = await response.json().catch(() => null);
-            if (!response.ok || !result)
+            if (response.status === 401) setSessionExpired(true);
+            if (
+              !response.ok ||
+              !result ||
+              !Number.isInteger(result.revision) ||
+              result.revision < 0
+            )
               throw new Error(
-                result?.error || 'Cloud saving failed. Export your changes before leaving.',
+                response.status === 401
+                  ? 'Your session has expired. Export your changes, then sign in again.'
+                  : result?.error || 'Saving failed. Export your changes before leaving.',
               );
             revision.current = result.revision;
             setError('');
@@ -104,16 +100,16 @@ export function useStore(mode: 'demo' | 'cloud') {
             setError(
               cause instanceof Error
                 ? cause.message
-                : 'Cloud saving failed. Export your changes before leaving.',
+                : 'Saving failed. Export your changes before leaving.',
             );
           }
         })
         .finally(() => setPending((n) => n - 1));
       return true;
     },
-    [mode],
+    [ready],
   );
-  return { state, commit, ready, error, pending };
+  return { state, commit, ready, error, pending, sessionExpired };
 }
 export function downloadBackup(state: AppState | string, filename = 'mellowoof-backup.json') {
   const url = URL.createObjectURL(

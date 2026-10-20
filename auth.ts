@@ -23,6 +23,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       ]
     : [],
   session: { strategy: cloudConfigured ? 'database' : 'jwt', maxAge: 60 * 60 * 24 * 30 },
+  pages: { signIn: '/', error: '/' },
   callbacks: {
     session({ session, user }) {
       if (user) session.user.id = user.id;

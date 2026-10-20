@@ -85,7 +85,6 @@ export const emptyState = (): AppState => ({
   activeDogId: null,
   favorites: [],
 });
-export const STORAGE_KEY = 'mellowoof-demo-v1';
 export function parseBackup(text: string): AppState {
   if (text.length > 8_000_000) throw new Error('Please use a backup smaller than 8 MB.');
   return stateSchema.parse(JSON.parse(text));

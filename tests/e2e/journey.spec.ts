@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { test, expect } from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
 async function register(page: Page, name = 'Maple') {
   await page.getByRole('button', { name: 'Let’s find out' }).click();
@@ -14,6 +15,7 @@ async function create(page: Page) {
   await expect(
     page.getByRole('heading', { name: 'Little lessons. Lasting habits.' }),
   ).toBeVisible();
+  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
 }
 async function nav(page: Page, label: string) {
   const navigation = page.getByRole('navigation', { name: 'Mobile navigation' });
@@ -32,17 +34,20 @@ async function nav(page: Page, label: string) {
     'page',
   );
 }
-test('confirmation cancellation discards the unconfirmed profile', async ({ page }) => {
+test('confirmation cancellation discards the unconfirmed profile', async ({ page, records }) => {
   await page.goto('/');
   await register(page, 'Unconfirmed');
   await page.getByRole('button', { name: 'Not right now' }).click();
   await expect(page.getByRole('heading', { name: 'Is your dog feeling okay?' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('mellowoof-demo-v1'))).toBeNull();
+  expect(records.writes).toBe(0);
+  expect(records.state.dogs).toHaveLength(0);
   await page.getByRole('button', { name: 'Let’s find out' }).click();
   await expect(page.getByLabel('Dog’s name')).toHaveValue('');
 });
 test('complete primary journey: timer, feedback, calendar, persistence and profile editing', async ({
   page,
+  records,
 }) => {
   await create(page);
   await page.getByRole('button', { name: /Doorbell Detective/ }).click();
@@ -89,16 +94,18 @@ test('complete primary journey: timer, feedback, calendar, persistence and profi
   await page.getByLabel('Dog’s name').fill('Maple Bean');
   await page.getByRole('button', { name: 'Save profile' }).click();
   await expect(page.getByRole('heading', { name: 'Maple Bean’s little world.' })).toBeVisible();
+  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
   await page.reload();
   await nav(page, 'Training');
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('mellowoof-demo-v1')!));
+  const saved = records.state;
   expect(saved.dogs[0].name).toBe('Maple Bean');
   expect(saved.dogs[0].sessions).toHaveLength(1);
   expect(saved.dogs[0].sessions[0].progressSnapshot).toBe(17);
   expect(saved.dogs[0].sessions[0].notes).toBe('Comfortable with a quiet sound.');
   expect(saved.dogs[0].events[0].repeat).toBe('weekly');
+  expect(await page.evaluate(() => localStorage.getItem('mellowoof-demo-v1'))).toBeNull();
 });
-test('difficulty recommends rest without artificial progress', async ({ page }) => {
+test('difficulty recommends rest without artificial progress', async ({ page, records }) => {
   await create(page);
   await page.getByRole('button', { name: /Tiny Goodbyes/ }).click();
   await page.getByRole('button', { name: 'Let’s practise' }).click();
@@ -107,14 +114,18 @@ test('difficulty recommends rest without artificial progress', async ({ page }) 
   await expect(page.getByText(/Let’s rest for now/)).toBeVisible();
   await page.getByRole('button', { name: 'Save our little step' }).click();
   await expect(page.getByRole('heading', { name: 'A little rest is a good step.' })).toBeVisible();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('mellowoof-demo-v1')!));
+  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
+  const saved = records.state;
   expect(saved.dogs[0].sessions[0].progressSnapshot).toBe(0);
   await page.getByRole('button', { name: 'All done' }).click();
   await nav(page, 'Home');
   await expect(page.getByRole('heading', { name: /A little rest.*A gentle reset/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start training', exact: true })).toHaveCount(0);
 });
-test('favorites, JSON export/import and multiple dogs remain separate', async ({ page }) => {
+test('favorites, JSON export/import and multiple dogs remain separate', async ({
+  page,
+  records,
+}) => {
   await create(page);
   await nav(page, 'Tips');
   await page
@@ -132,9 +143,8 @@ test('favorites, JSON export/import and multiple dogs remain separate', async ({
   await page.getByRole('button', { name: 'Add another dog' }).click();
   await register(page, 'Poppy');
   await page.getByRole('button', { name: 'Yes, let’s do this!' }).click();
-  await expect(page.getByLabel('Active dog')).toHaveValue(
-    await page.evaluate(() => JSON.parse(localStorage.getItem('mellowoof-demo-v1')!).activeDogId),
-  );
+  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
+  await expect(page.getByLabel('Active dog')).toHaveValue(records.state.activeDogId!);
   await nav(page, 'Profile');
   await page.locator('input[type=file][accept="application/json,.json"]').setInputFiles(file!);
   await page.getByRole('button', { name: 'Replace with backup' }).click();

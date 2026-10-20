@@ -30,6 +30,6 @@ Configure the Google consent screen and test users if the client is in testing. 
 
 The integration's existing `POSTGRES_URL` supplies database access. Supabase publishable/anonymous keys, JWT secrets and service-role keys cannot substitute for these three Auth.js settings. Keep all secret values in private environment settings. Optional `AUTH_URL` can set the canonical origin to `https://doggofixxo.vercel.app`.
 
-Redeploy after the GitHub update and environment changes. Verify Google sign-in, create a cloud dog, reload to confirm persistence, sign out, and use a second Google account to check isolation. Demo records remain separate; transfer them explicitly with Profile export/import if needed.
+Redeploy after the GitHub update and environment changes. Verify Google sign-in, create a cloud dog, reload to confirm persistence, sign out, and use a second Google account to check isolation. Signed-out visitors see Google sign-in. All personal records require an authenticated account; no browser-local fallback is available. Existing JSON backups can be imported explicitly under Profile.
 
 Local tests verify migrations and authorization using embedded PostgreSQL. They do not apply these tables to your Supabase project or verify the deployed Google flow.

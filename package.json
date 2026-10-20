@@ -11,6 +11,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:browser-server": "vite --config tests/browser/vite.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:setup-sql": "node scripts/create-supabase-setup.mjs"
@@ -42,12 +43,14 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "^6.1.2",
     "drizzle-kit": "latest",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.0.0",
     "prettier": "^3.9.10",
     "tailwindcss": "latest",
     "typescript": "^5.0.0",
+    "vite": "^8.3.4",
     "vitest": "latest"
   },
   "engines": {

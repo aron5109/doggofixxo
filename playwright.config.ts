@@ -7,7 +7,8 @@ export default defineConfig({
   timeout: 90000,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://127.0.0.1:3100',
+    serviceWorkers: 'block',
     actionTimeout: 30000,
     reducedMotion: 'reduce',
     trace: 'retain-on-failure',
@@ -20,13 +21,26 @@ export default defineConfig({
     },
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    { name: 'desktop', testIgnore: 'auth.spec.ts', use: { ...devices['Desktop Chrome'] } },
+    { name: 'mobile', testIgnore: 'auth.spec.ts', use: { ...devices['Pixel 7'] } },
+    {
+      name: 'production',
+      testMatch: 'auth.spec.ts',
+      use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:3000' },
+    },
   ],
-  webServer: {
-    command: 'npm run start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  webServer: [
+    {
+      command: 'npm run start',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+    {
+      command: 'npm run test:browser-server',
+      url: 'http://127.0.0.1:3100',
+      reuseExistingServer: false,
+      timeout: 120000,
+    },
+  ],
 });

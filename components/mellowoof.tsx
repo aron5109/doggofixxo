@@ -27,7 +27,6 @@ import {
   Trash2,
   ExternalLink,
   Cloud,
-  HardDrive,
   Menu,
   X,
 } from 'lucide-react';
@@ -45,7 +44,6 @@ import {
   plusDays,
   occurrences,
   parseBackup,
-  STORAGE_KEY,
 } from '@/lib/model';
 import { type Lesson, lessons, categoryMeta, durationMinutes, lessonById } from '@/lib/lessons';
 import { tips, tipGroups } from '@/lib/tips';
@@ -64,15 +62,8 @@ const navItems = [
   { label: 'Tips', icon: Lightbulb },
   { label: 'Profile', icon: UserRound },
 ] as const;
-export function Mellowoof({
-  cloudEnabled,
-  account,
-}: {
-  cloudEnabled: boolean;
-  account: { name: string } | null;
-}) {
-  const [mode, setMode] = useState<'demo' | 'cloud'>(account ? 'cloud' : 'demo');
-  const { state, commit, ready, error, pending } = useStore(mode);
+export function Mellowoof({ account }: { account: { name: string } }) {
+  const { state, commit, ready, error, pending, sessionExpired } = useStore();
   const [view, setView] = useState<View>('Home');
   const [adding, setAdding] = useState(false);
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -130,36 +121,16 @@ export function Mellowoof({
       maintenance: complete,
     });
   }
-  const modeBanner = (
-    <div className={`mode-banner ${mode}`}>
-      <span>
-        {mode === 'demo' ? <HardDrive size={14} /> : <Cloud size={14} />}
-        {mode === 'demo'
-          ? 'Local demo · saved only in this browser'
+  const accountBanner = (
+    <div className="account-banner" role="status">
+      <Cloud size={14} aria-hidden="true" />
+      {error
+        ? 'Your account needs attention'
+        : !ready
+          ? 'Opening your account…'
           : pending
             ? 'Saving to your account…'
-            : error
-              ? 'Cloud save needs attention'
-              : 'Cloud account · saved securely'}
-      </span>
-      {mode === 'demo' && (
-        <span className="demo-backup-hint">Export a backup to keep your little steps safe.</span>
-      )}
-      {cloudEnabled && !account && (
-        <button onClick={() => void signIn('google', { callbackUrl: '/' })}>
-          Sign in with Google
-        </button>
-      )}
-      {account && mode === 'demo' && (
-        <button
-          onClick={() => {
-            setMode('cloud');
-            setView('Home');
-          }}
-        >
-          Back to cloud account
-        </button>
-      )}
+            : 'All changes saved to your account'}
     </div>
   );
   const alerts = (
@@ -167,31 +138,27 @@ export function Mellowoof({
       {error && (
         <div role="alert" className="error-banner">
           {error}
-          {(ready || mode === 'demo') && (
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={() =>
-                downloadBackup(ready ? state : localStorage.getItem(STORAGE_KEY) || '{}')
-              }
-            >
+          {ready && (
+            <Button variant="ghost" size="small" onClick={() => downloadBackup(state)}>
               Export backup
             </Button>
           )}
-          {!ready && (
-            <>
-              <label className="inline-upload">
-                Import backup
-                <input
-                  type="file"
-                  accept="application/json,.json"
-                  onChange={(e) => void importFile(e.target.files?.[0])}
-                />
-              </label>
-              <Button variant="ghost" size="small" onClick={() => location.reload()}>
-                Reload
-              </Button>
-            </>
+          {sessionExpired && (
+            <Button
+              variant="ghost"
+              size="small"
+              onClick={() => void signIn('google', { redirectTo: '/' })}
+            >
+              Sign in again
+            </Button>
+          )}
+          <Button variant="ghost" size="small" onClick={() => location.reload()}>
+            Try again
+          </Button>
+          {!ready && !sessionExpired && (
+            <Button variant="ghost" size="small" onClick={() => void signOut({ redirectTo: '/' })}>
+              Sign out
+            </Button>
           )}
         </div>
       )}
@@ -209,7 +176,7 @@ export function Mellowoof({
     <Modal
       open={Boolean(imported)}
       title="Import this backup?"
-      description={`This replaces records in ${mode === 'demo' ? 'this local demo' : 'your cloud account'}. It does not merge them.`}
+      description="This replaces records in your account. It does not merge them."
       onClose={() => setImported(null)}
     >
       <p>
@@ -237,7 +204,7 @@ export function Mellowoof({
   if (!ready)
     return (
       <>
-        {modeBanner}
+        {accountBanner}
         {alerts}
         <div id="main" className="loading-screen">
           <PawPrint size={38} />
@@ -250,7 +217,7 @@ export function Mellowoof({
   if (!dog || adding)
     return (
       <>
-        {modeBanner}
+        {accountBanner}
         {alerts}
         <Onboarding
           onConfirm={confirmDog}
@@ -321,7 +288,7 @@ export function Mellowoof({
   }
   return (
     <MotionConfig reducedMotion="user">
-      {modeBanner}
+      {accountBanner}
       <div className="app-layout">
         <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
           <button className="brand" onClick={() => navigate('Home')} aria-label="Mellowoof home">
@@ -361,7 +328,7 @@ export function Mellowoof({
             </div>
             <div>
               <strong>{dog.name}’s little world</strong>
-              <small>{mode === 'demo' ? 'Local demo' : account?.name}</small>
+              <small>{account.name}</small>
             </div>
             <ChevronRight size={17} />
           </button>
@@ -985,13 +952,12 @@ export function Mellowoof({
                     <div className="profile-settings">
                       <section className="card">
                         <span className="card-icon sage">
-                          {mode === 'demo' ? <HardDrive size={22} /> : <Cloud size={22} />}
+                          <Cloud size={22} />
                         </span>
-                        <h2>{mode === 'demo' ? 'Your local demo' : 'Your cloud account'}</h2>
+                        <h2>Your account</h2>
                         <p>
-                          {mode === 'demo'
-                            ? 'Your dogs, sessions and appointments stay in this browser. They are not synchronised to the cloud. Clearing browser data can remove them.'
-                            : `Signed in as ${account?.name}. Only your account can access these cloud records.`}
+                          Signed in as {account.name}. Your dogs, training sessions and appointments
+                          are saved privately in your account.
                         </p>
                         <div className="actions">
                           <Button variant="secondary" onClick={() => downloadBackup(state)}>
@@ -1011,43 +977,26 @@ export function Mellowoof({
                         </div>
                         <p className="small muted">
                           Backups contain personal records. Store and share them carefully.
-                          Importing replaces the selected mode’s records.
+                          Importing replaces your account’s records.
                         </p>
                       </section>
                       <section className="card">
                         <h2>Keep your little world connected.</h2>
                         <p>
-                          {cloudEnabled
-                            ? 'Sign in with Google for private, database-backed storage. Demo records stay separate; move them with export and import when you choose.'
-                            : 'Google sign-in needs the database and OAuth environment configuration. All local demo features work now. See the setup documentation to enable cloud accounts.'}
+                          Your little steps stay with your Google account. Sign in with the same
+                          account on another device to pick up where you left off.
                         </p>
-                        {account ? (
-                          <div className="actions">
-                            <Button
-                              variant="secondary"
-                              onClick={() => {
-                                if (!pending && !error) void signOut({ callbackUrl: '/' });
-                                else setNotice('Export your unsaved changes before signing out.');
-                              }}
-                            >
-                              <LogOut size={17} /> Sign out
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              disabled={Boolean(pending || error)}
-                              onClick={() => setMode(mode === 'demo' ? 'cloud' : 'demo')}
-                            >
-                              Use {mode === 'demo' ? 'cloud account' : 'local demo'}
-                            </Button>
-                          </div>
-                        ) : (
+                        <div className="actions">
                           <Button
-                            disabled={!cloudEnabled}
-                            onClick={() => void signIn('google', { callbackUrl: '/' })}
+                            variant="secondary"
+                            onClick={() => {
+                              if (!pending && !error) void signOut({ redirectTo: '/' });
+                              else setNotice('Export your unsaved changes before signing out.');
+                            }}
                           >
-                            <UserRound size={18} /> Continue with Google
+                            <LogOut size={17} /> Sign out
                           </Button>
-                        )}
+                        </div>
                       </section>
                       <section className="card gentle-promise">
                         <ShieldCheck size={24} />
@@ -1153,7 +1102,7 @@ export function Mellowoof({
       <Modal
         open={deleteDog}
         title={`Remove ${dog.name}’s profile?`}
-        description="This removes this dog’s sessions and appointments from the selected storage mode."
+        description="This removes this dog’s sessions and appointments from your account."
         onClose={() => setDeleteDog(false)}
       >
         <p>

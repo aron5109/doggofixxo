@@ -16,8 +16,8 @@ npm run test:e2e
 ## Vercel
 
 1. Import the existing repository into an authorized Vercel account/team.
-2. Choose Next.js, repository root, Node 24, `npm ci`, `npm run build`, default output. A deployment without cloud credentials runs local demo mode.
-3. Enable GitHub integration for `main`. Preview domains need their own Google callback or should remain demo-only.
+2. Choose Next.js, repository root, Node 24, `npm ci`, `npm run build`, default output. A deployment without the database and Auth.js settings keeps sign-in unavailable.
+3. Enable GitHub integration for `main`. Preview domains need their own Google callback and appropriate private database settings to support sign-in.
 4. Keep secrets in Vercel environment settings, never Git. Apply the database migration and configure Google before enabling cloud accounts.
 
 ## PostgreSQL
@@ -47,7 +47,7 @@ Create a Google OAuth **Web application** client. Configure the consent screen a
 | `AUTH_GOOGLE_SECRET`             | OAuth client secret                                                                |
 | `AUTH_URL` (optional)            | Canonical origin if automatic detection is unsuitable                              |
 
-A database URL and all three Auth.js values must exist to enable cloud mode. Supabase publishable, anonymous, secret and service-role API keys are not used by this app and do not replace them. Leave the Auth.js settings absent for demo-only deployments. Do not use dummy values to claim readiness. Vercel host handling is supported automatically by Auth.js; other reverse proxies require documented trust configuration. Never log tokens or credentials. Restrict database roles and configure backups.
+A database URL and all three Auth.js values must exist to enable account access. Supabase publishable, anonymous, secret and service-role API keys are not used by this app and do not replace them. Missing Auth.js settings block sign-in; no browser-local fallback is available. Do not use dummy values to claim readiness. Vercel host handling is supported automatically by Auth.js; other reverse proxies require documented trust configuration. Never log tokens or credentials. Restrict database roles and configure backups.
 
 Outbound runtime access: PostgreSQL host/port and Google discovery/token/user-info endpoints, including `accounts.google.com`, `oauth2.googleapis.com`, `openidconnect.googleapis.com`. Setup needs `registry.npmjs.org`. Supporting welfare links open in the user’s browser; the application does not fetch them at runtime.
 
@@ -55,4 +55,4 @@ Outbound runtime access: PostgreSQL host/port and Google discovery/token/user-in
 
 After actual deployment, test onboarding, backup, reload, Google consent, cloud dog creation, session/calendar persistence, sign-out, and a second Google account to confirm isolation. Check mobile navigation, import confirmation, private caching, connection failure reporting and database pooling. Inspect logs without printing credentials.
 
-The repository can be built and demo mode exercised without external credentials. Local tests do not establish that remote migrations have run or that Vercel environment settings and Google OAuth consent work. Verify those operations against the actual deployment before declaring cloud accounts ready.
+The repository can be built and its unavailable sign-in state checked without external credentials. Local tests do not establish that remote migrations have run or that Vercel environment settings and Google OAuth consent work. Verify those operations against the actual deployment before declaring cloud accounts ready.
