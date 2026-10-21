@@ -523,44 +523,34 @@ export const lessons: Lesson[] = [
 export const lessonById = (id: string) => lessons.find((lesson) => lesson.id === id);
 export const durationMinutes = (lesson: Lesson) =>
   Math.ceil(lesson.steps.reduce((sum, s) => sum + s.seconds, 0) / 60);
-export const categoryMeta: Record<
-  LessonCategory,
-  { emoji: string; color: string; description: string }
-> = {
+export const categoryMeta: Record<LessonCategory, { color: string; description: string }> = {
   Barking: {
-    emoji: '🔔',
     color: 'peach',
     description: 'A little less noise, a little more calm.',
   },
   'Separation worries': {
-    emoji: '🏡',
     color: 'sage',
     description: 'Build comfort, one tiny goodbye at a time.',
   },
   Chewing: {
-    emoji: '🦴',
     color: 'butter',
     description: 'Good choices for those busy little jaws.',
   },
-  Walking: { emoji: '🌿', color: 'sage', description: 'Find your rhythm, side by side.' },
-  Bathing: { emoji: '🫧', color: 'lavender', description: 'Gentle care, at your pup’s pace.' },
+  Walking: { color: 'sage', description: 'Find your rhythm, side by side.' },
+  Bathing: { color: 'lavender', description: 'Gentle care, at your pup’s pace.' },
   'Recall & focus': {
-    emoji: '🎯',
     color: 'peach',
     description: 'Build attention, returning and reliable releases in comfortable stages.',
   },
   'Everyday skills': {
-    emoji: '✨',
     color: 'sage',
     description: 'Take familiar skills into thoughtful everyday routines.',
   },
   'Scent & enrichment': {
-    emoji: '🔎',
     color: 'butter',
     description: 'Let the nose lead through safe, rewarding searches.',
   },
   'Cooperative care': {
-    emoji: '🤝',
     color: 'lavender',
     description: 'Build useful care skills with voluntary participation and clear pauses.',
   },

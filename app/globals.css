@@ -1042,7 +1042,7 @@ small,
   color: #5b6656;
   margin-top: 4px;
 }
-.category-tiles svg {
+.category-tiles button > svg {
   position: absolute;
   right: 10px;
   top: 19px;
@@ -1814,8 +1814,10 @@ fieldset > p {
   border-color: #8ca77a;
   background: #f1f5e9;
 }
-.concern-emoji {
-  font-size: 23px;
+.concern > .category-dog-art {
+  width: 66px;
+  height: 58px;
+  flex-shrink: 0;
 }
 .check-circle {
   margin-left: auto;
@@ -2800,7 +2802,7 @@ details h4 {
   .category-tiles small {
     font-size: 7px;
   }
-  .category-tiles svg {
+  .category-tiles button > svg {
     right: 7px;
     top: 15px;
     width: 12px;
@@ -3142,7 +3144,7 @@ details h4 {
   .category-tiles small {
     font-size: 9px;
   }
-  .category-tiles svg {
+  .category-tiles button > svg {
     right: 15px;
     top: 20px;
     width: 15px;
@@ -3890,5 +3892,50 @@ details h4 {
   .mobile-brand .brand-logo {
     width: 28px;
     height: 28px;
+  }
+}
+
+/* Category illustrations share the soft, speckled profile-pup style. */
+.category-dog-art {
+  display: block;
+  flex-shrink: 0;
+}
+.lesson-card-art > .category-dog-art {
+  position: relative;
+  z-index: 1;
+  width: 152px;
+  max-width: 100%;
+  height: 114px;
+}
+.current-lesson .card-icon {
+  width: 80px;
+  height: 72px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.current-lesson .category-dog-art {
+  width: 100%;
+  height: 100%;
+}
+.category-tiles button > .category-scene {
+  display: block;
+  width: 94px;
+  height: 82px;
+  margin: 0 0 8px;
+}
+.category-scene > .category-dog-art {
+  width: 100%;
+  height: 100%;
+}
+@media (max-width: 480px) {
+  .lesson-card-art {
+    padding: 7px;
+  }
+  .category-tiles button:last-child {
+    grid-template-columns: 80px 1fr;
+  }
+  .category-tiles button:last-child > .category-scene {
+    width: 80px;
+    height: 70px;
   }
 }

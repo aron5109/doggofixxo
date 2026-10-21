@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ArrowRight, ArrowLeft, Heart, Check, Upload } from 'lucide-react';
 import { categories, profileSchema, localDay, type Profile } from '@/lib/model';
 import { DogArt, avatarNames } from './dog-art';
+import { CategoryDogArt } from './category-dog-art';
 import { Button } from './ui/button';
 import { BrandLogo } from './brand-logo';
 export const newProfile = (): Profile => ({
@@ -226,7 +227,7 @@ export function ConcernFields({
       <legend>What would you like a little help with?</legend>
       <p className="muted">Choose any that fit. You can change these later.</p>
       <div className="concern-grid">
-        {categories.map((category, i) => (
+        {categories.map((category) => (
           <button
             type="button"
             className={`concern ${value.concerns.includes(category) ? 'selected' : ''}`}
@@ -241,7 +242,7 @@ export function ConcernFields({
               })
             }
           >
-            <span className="concern-emoji">{['🔔', '🏡', '🦴', '🌿', '🫧'][i]}</span>
+            <CategoryDogArt category={category} />
             {category}
             <span className="check-circle">
               {value.concerns.includes(category) && <Check size={15} />}

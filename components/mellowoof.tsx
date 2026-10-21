@@ -60,6 +60,7 @@ import { tips, tipGroups } from '@/lib/tips';
 import { references } from '@/lib/references';
 import { Onboarding, ProfileFields, ConcernFields } from './onboarding';
 import { DogArt } from './dog-art';
+import { CategoryDogArt } from './category-dog-art';
 import { BrandLogo } from './brand-logo';
 import { Button } from './ui/button';
 import { Modal } from './ui/dialog';
@@ -292,8 +293,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
     return (
       <button key={item.id} className="lesson-card card" onClick={() => setLesson(item)}>
         <div className={`lesson-card-art ${meta.color}`}>
-          <span>{meta.emoji}</span>
-          <i>✧</i>
+          <CategoryDogArt category={item.category} />
           <small>{item.category}</small>
         </div>
         <div className="lesson-card-body">
@@ -551,7 +551,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                       </div>
                       <div className="current-lesson">
                         <span className={`card-icon ${categoryMeta[recommended.category].color}`}>
-                          {categoryMeta[recommended.category].emoji}
+                          <CategoryDogArt category={recommended.category} />
                         </span>
                         <div>
                           <span className="small muted">
@@ -704,7 +704,9 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                           }}
                           className={categoryMeta[cat].color}
                         >
-                          <span>{categoryMeta[cat].emoji}</span>
+                          <span className="category-scene">
+                            <CategoryDogArt category={cat} />
+                          </span>
                           <strong>{cat}</strong>
                           <small>
                             {lessons.filter((item) => item.category === cat).length} lessons
