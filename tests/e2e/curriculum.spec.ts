@@ -62,11 +62,7 @@ test('advanced lessons show readiness, open prerequisites, and persist observed 
 
   dialog = await openAdvancedLesson(page);
   await dialog.locator('summary').filter({ hasText: 'Why this approach?' }).click();
-  const source = advanced.sources.find((id) => trainerSources.has(id))!;
-  await expect(dialog.getByRole('link', { name: references[source].title })).toHaveAttribute(
-    'href',
-    references[source].url,
-  );
+  await expect(dialog.getByRole('link')).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Let’s practise' }).click();
   await dialog.getByRole('button', { name: 'Finish session early' }).click();
   await dialog.getByRole('button', { name: 'Great!', exact: true }).click();
@@ -76,7 +72,7 @@ test('advanced lessons show readiness, open prerequisites, and persist observed 
     .fill('Comfortable with the easy setup; keep the next repetition simple.');
   await dialog.getByRole('button', { name: 'Save our little step' }).click();
   await expect(dialog.getByText('SESSION SAVED', { exact: true })).toBeVisible();
-  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
+  await expect(page.locator('.app-layout')).toHaveAttribute('data-save-state', 'saved');
   expect(records.state.dogs[0].sessions).toHaveLength(1);
   expect(records.state.dogs[0].sessions[0]).toMatchObject({
     lessonId: advanced.id,
@@ -114,7 +110,7 @@ test('new trainer-reading tips can be found, saved, and restored after reload', 
     page.locator('.tip-card').getByRole('link', { name: references[newTip.source].title }),
   ).toHaveAttribute('href', references[newTip.source].url);
   await page.getByRole('button', { name: `Save tip: ${newTip.text}`, exact: true }).click();
-  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
+  await expect(page.locator('.app-layout')).toHaveAttribute('data-save-state', 'saved');
   expect(records.state.favorites).toContain(newTip.id);
 
   await page.reload();

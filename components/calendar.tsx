@@ -19,6 +19,7 @@ import {
   plusDays,
   eventSchema,
   progressFor,
+  progressAtSession,
 } from '@/lib/model';
 import { lessons, lessonById } from '@/lib/lessons';
 import { Button } from './ui/button';
@@ -28,6 +29,7 @@ export type EventDraft = {
   date?: Date;
   lessonId?: string;
   maintenance?: boolean;
+  template?: CalendarEvent;
 };
 export function EventEditor({
   draft,
@@ -42,7 +44,8 @@ export function EventEditor({
 }) {
   const [value, setValue] = useState<CalendarEvent>(
     () =>
-      draft.event || {
+      draft.event ||
+      draft.template || {
         id: crypto.randomUUID(),
         title: draft.lessonId ? lessonById(draft.lessonId)?.title || 'Training' : '',
         kind: draft.lessonId ? 'Training' : 'Reminder',
@@ -56,6 +59,16 @@ export function EventEditor({
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const patch = (update: Partial<CalendarEvent>) => setValue({ ...value, ...update });
+  if (draft.event?.carePlan === 'birthday')
+    return (
+      <Modal open title={draft.event.title} onClose={onClose}>
+        <p>
+          This yearly birthday follows the date in your dog’s profile. Use Edit profile to change or
+          remove the birthday.
+        </p>
+        <Button onClick={onClose}>Done</Button>
+      </Modal>
+    );
   return (
     <Modal
       open
@@ -87,12 +100,18 @@ export function EventEditor({
             <select
               value={value.kind}
               onChange={(e) =>
-                patch({ kind: e.target.value as CalendarEvent['kind'], lessonId: undefined })
+                patch({
+                  kind: e.target.value as CalendarEvent['kind'],
+                  lessonId: undefined,
+                  carePlan: undefined,
+                })
               }
             >
-              {['Training', 'Vet', 'Grooming', 'Birthday', 'Reminder'].map((kind) => (
-                <option key={kind}>{kind}</option>
-              ))}
+              {['Training', 'Vet', 'Grooming', 'Birthday', 'Reminder', 'Feeding', 'Play'].map(
+                (kind) => (
+                  <option key={kind}>{kind}</option>
+                ),
+              )}
             </select>
           </label>
           <label>
@@ -137,14 +156,62 @@ export function EventEditor({
           Repeat
           <select
             value={value.repeat}
-            onChange={(e) => patch({ repeat: e.target.value as CalendarEvent['repeat'] })}
+            onChange={(e) =>
+              patch({
+                repeat: e.target.value as CalendarEvent['repeat'],
+                repeatEvery: undefined,
+                ...(e.target.value === 'none' ? { repeatUntil: undefined } : {}),
+              })
+            }
           >
             <option value="none">Does not repeat</option>
+            <option value="daily">Every day</option>
             <option value="weekly">Every week</option>
             <option value="monthly">Every month</option>
             <option value="yearly">Every year</option>
           </select>
         </label>
+        {value.repeat === 'weekly' && (
+          <label>
+            Repeat every · weeks
+            <input
+              type="number"
+              min={1}
+              max={52}
+              value={value.repeatEvery || 1}
+              onChange={(e) => patch({ repeatEvery: Number(e.target.value) })}
+            />
+          </label>
+        )}
+        {value.repeat !== 'none' && (
+          <label>
+            Repeat through (optional)
+            <input
+              type="date"
+              min={localDay(value.start)}
+              value={value.repeatUntil ? localDay(value.repeatUntil) : ''}
+              onChange={(e) =>
+                patch({
+                  repeatUntil: e.target.value
+                    ? new Date(`${e.target.value}T23:59:59.999`).toISOString()
+                    : undefined,
+                })
+              }
+            />
+          </label>
+        )}
+        {value.kind === 'Play' && (
+          <label>
+            Planned play minutes
+            <input
+              type="number"
+              min={1}
+              max={240}
+              value={value.durationMinutes || 20}
+              onChange={(e) => patch({ durationMinutes: Number(e.target.value) })}
+            />
+          </label>
+        )}
         <label>
           Notes (optional)
           <textarea
@@ -189,11 +256,17 @@ export function Calendar({
   dog,
   onEdit,
   onSession,
+  onTogglePlay,
 }: {
   dog: Dog;
   onEdit: (draft: EventDraft) => void;
   onSession: (session: TrainingSession) => void;
+  onTogglePlay: (event: CalendarEvent, occurrence: string, minutes?: number) => void;
 }) {
+  const [playCompletion, setPlayCompletion] = useState<{ event: CalendarEvent; at: string } | null>(
+    null,
+  );
+  const [actualMinutes, setActualMinutes] = useState(20);
   const [view, setView] = useState<'Month' | 'Week' | 'Agenda'>('Month');
   const [date, setDate] = useState(() => new Date());
   const [selected, setSelected] = useState(() => localDay(new Date()));
@@ -357,57 +430,127 @@ export function Calendar({
           </div>
         )}
         {items.map((item) => (
-          <button
+          <div
+            className="agenda-row"
             key={item.event ? `${item.event.id}:${item.at}` : item.session!.id}
-            className="agenda-item"
-            onClick={() =>
-              item.event
-                ? onEdit({ event: dog.events.find((e) => e.id === item.event!.id) })
-                : onSession(item.session!)
-            }
           >
-            <span className={`agenda-icon ${item.session ? 'sage' : 'peach'}`}>
-              {item.session ? <CheckCircle2 size={21} /> : <Clock3 size={21} />}
-            </span>
-            <div>
-              <strong>{item.event?.title || lessonById(item.session!.lessonId)?.title}</strong>
-              <p>
-                {new Date(item.at).toLocaleString('en', {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })}{' '}
-                · {item.event?.kind || 'Completed practice'}
-                {item.event?.repeat !== 'none' && item.event && <Repeat2 size={13} />}
-              </p>
-              {(item.session || item.event?.lessonId) && (
-                <div
-                  className="mini-progress"
-                  role="progressbar"
-                  aria-label="Practice progress"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={
-                    item.session?.progressSnapshot ??
-                    progressFor(dog.sessions, item.event!.lessonId!).percent
+            <button
+              key={item.event ? `${item.event.id}:${item.at}` : item.session!.id}
+              className="agenda-item"
+              onClick={() =>
+                item.event
+                  ? onEdit({ event: dog.events.find((e) => e.id === item.event!.id) })
+                  : onSession(item.session!)
+              }
+            >
+              <span className={`agenda-icon ${item.session ? 'sage' : 'peach'}`}>
+                {item.session ? <CheckCircle2 size={21} /> : <Clock3 size={21} />}
+              </span>
+              <div>
+                <strong>{item.event?.title || lessonById(item.session!.lessonId)?.title}</strong>
+                <p>
+                  {new Date(item.at).toLocaleString('en', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}{' '}
+                  · {item.event?.kind || 'Completed practice'}
+                  {item.event?.repeat !== 'none' && item.event && <Repeat2 size={13} />}
+                </p>
+                {(item.session || item.event?.lessonId) && (
+                  <div
+                    className="mini-progress"
+                    role="progressbar"
+                    aria-label="Practice progress"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={
+                      item.session
+                        ? progressAtSession(dog.sessions, item.session.id)
+                        : progressFor(dog.sessions, item.event!.lessonId!).percent
+                    }
+                  >
+                    <span
+                      style={{
+                        width: `${item.session ? progressAtSession(dog.sessions, item.session.id) : progressFor(dog.sessions, item.event!.lessonId!).percent}%`,
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              <span className="badge">
+                {item.session
+                  ? `${progressAtSession(dog.sessions, item.session.id)}%`
+                  : item.event?.kind === 'Play' &&
+                      dog.playSessions?.some(
+                        (s) => s.eventId === item.event!.id && s.occurrence === item.at,
+                      )
+                    ? 'Done'
+                    : 'Planned'}
+              </span>
+              <ChevronRight size={17} />
+            </button>
+            {item.event?.kind === 'Play' && (
+              <Button
+                className="play-done-button"
+                variant="secondary"
+                size="small"
+                disabled={localDay(item.at) > localDay(new Date())}
+                onClick={() => {
+                  const event = item.event!;
+                  if (
+                    dog.playSessions?.some(
+                      (s) => s.eventId === event.id && s.occurrence === item.at,
+                    )
+                  )
+                    onTogglePlay(event, item.at);
+                  else {
+                    setActualMinutes(event.durationMinutes || dog.playTarget || 20);
+                    setPlayCompletion({ event, at: item.at });
                   }
-                >
-                  <span
-                    style={{
-                      width: `${item.session?.progressSnapshot ?? progressFor(dog.sessions, item.event!.lessonId!).percent}%`,
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-            <span className="badge">
-              {item.session ? `${item.session.progressSnapshot}%` : 'Planned'}
-            </span>
-            <ChevronRight size={17} />
-          </button>
+                }}
+              >
+                {dog.playSessions?.some(
+                  (s) => s.eventId === item.event!.id && s.occurrence === item.at,
+                )
+                  ? 'Undo completed play'
+                  : 'Mark play done'}
+              </Button>
+            )}
+          </div>
         ))}
       </section>
+      {playCompletion && (
+        <Modal open title="Record completed play" onClose={() => setPlayCompletion(null)}>
+          <p>
+            {playCompletion.event.title} · {localDay(playCompletion.at)}
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              onTogglePlay(playCompletion.event, playCompletion.at, actualMinutes);
+              setPlayCompletion(null);
+            }}
+          >
+            <label>
+              Completed minutes
+              <input
+                type="number"
+                required
+                min={1}
+                max={240}
+                value={actualMinutes}
+                onChange={(e) => setActualMinutes(Number(e.target.value))}
+              />
+            </label>
+            <p className="small muted">
+              Only the actual completed time is added to activity totals and badges.
+            </p>
+            <Button type="submit">Save completed play</Button>
+          </form>
+        </Modal>
+      )}
     </>
   );
 }

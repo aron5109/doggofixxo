@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { ArrowRight, ArrowLeft, Heart, Check, Upload } from 'lucide-react';
-import { categories, profileSchema, type Profile } from '@/lib/model';
+import { categories, profileSchema, localDay, type Profile } from '@/lib/model';
 import { DogArt, avatarNames } from './dog-art';
 import { Button } from './ui/button';
 import { BrandLogo } from './brand-logo';
@@ -78,9 +78,11 @@ export function ProfileFields({
             min="0"
             max="30"
             step="0.1"
+            disabled={Boolean(value.birthday)}
             value={value.age}
             onChange={(e) => patch({ age: Number(e.target.value) })}
           />
+          {value.birthday && <small>Calculated from birthday.</small>}
         </label>
         <div className="weight-field">
           <label>
@@ -127,6 +129,41 @@ export function ProfileFields({
             <option>Yes</option>
             <option>No</option>
           </select>
+        </label>
+        <label>
+          Birthday (optional)
+          <input
+            type="date"
+            max={localDay(new Date())}
+            value={value.birthday || ''}
+            onChange={(e) => {
+              const birthday = e.target.value || undefined;
+              patch({
+                birthday,
+                ...(birthday
+                  ? {
+                      age: Math.max(
+                        0,
+                        Math.round(
+                          (Date.now() - new Date(`${birthday}T12:00:00`).getTime()) / 3155760000,
+                        ) / 10,
+                      ),
+                    }
+                  : {}),
+              });
+            }}
+          />
+        </label>
+        <label>
+          Microchip number (optional)
+          <input
+            maxLength={30}
+            pattern="[A-Za-z0-9 -]*"
+            autoComplete="off"
+            value={value.microchip || ''}
+            placeholder="If known"
+            onChange={(e) => patch({ microchip: e.target.value || undefined })}
+          />
         </label>
       </div>
       <fieldset>

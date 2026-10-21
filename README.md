@@ -6,10 +6,11 @@
 
 - Confirm-or-cancel onboarding, eight original illustrated avatars, optional photos, editable profiles and multiple dogs.
 - Thirty-five complete lessons: fifteen foundation, ten intermediate and ten advanced, across nine topics. Level/topic filters, behavioral readiness and linked prerequisites help choose the next skill. Every lesson includes preparation, safety, timers, success criteria, adjustments, rewards and references.
-- Start/pause/resume/skip/early-finish timers, session feedback and notes. Practice progress follows observed success over separate days; maintenance and observations stay distinct.
+- Start/pause/resume/skip/early-finish timers, session feedback and notes. Practice progress advances with each confirmed Great session, including same-day sessions; maintenance and observations stay distinct.
 - Month/week/agenda calendar, appointment CRUD, recurring reminders, lesson scheduling and automatic completed-session entries.
 - One hundred sixty searchable tips in sixteen categories, favorites, and a daily dashboard tip. Trainer reading links cover Zak George, Victoria Stilwell, Brandon McMillan, Grisha Stewart and Cesar Millan; exercises use original wording and reward-based methods.
 - Google sign-in, server-side database sessions, private PostgreSQL records, and validated JSON backup export/import.
+- Approximate food/water guides, confirmed one-year feeding/bathing/play plans, actual play-minute charts (week/month/year), milestone badges, automatic birthdays and optional microchip details.
 - Responsive navigation, accessible dialogs and forms, reduced motion, bundled Nunito fonts and installable PWA with an offline reconnect screen.
 
 ## Local setup
@@ -61,6 +62,6 @@ See [deployment](docs/DEPLOYMENT.md), [architecture](docs/ARCHITECTURE.md), [tra
 
 ## Limits
 
-Mellowoof is educational and does not replace veterinary care. Each practice milestone needs two reported comfortable successes on separate days, with at most one credit per day across a lesson. This is a transparent product heuristic, not a clinically validated recovery threshold or proof of readiness for an advanced exercise. A 100% practice record starts optional maintenance and does not mean permanent resolution. The intermediate and advanced exercises are original educational adaptations; trainer references are further reading, not endorsements or claims to reproduce their protocols. Primary trainer pages could not be fetched from this workspace; current page content was not independently verified. See the research notes for scope and source-access limits.
+Mellowoof is educational and does not replace veterinary care. Each practice milestone needs two reported comfortable successes. Six distinct confirmed Great sessions complete a lesson’s practice record; same-day sessions count and duplicate record IDs do not. This is a transparent product heuristic, not a clinically validated recovery threshold or proof of readiness for an advanced exercise. A 100% practice record starts optional maintenance and does not mean permanent resolution. The intermediate and advanced exercises are original educational adaptations; trainer references are further reading, not endorsements or claims to reproduce their protocols. Primary trainer pages could not be fetched from this workspace; current page content was not independently verified. See the research notes for scope and source-access limits.
 
 Recurring reminders are in-app entries, not push notifications. They repeat in the browser’s current time zone; travelling changes their displayed base time. Month-end repeats clamp without drifting future months. Cloud conflicts pause saving; export unsaved changes before reloading. An internet connection is required to load and save records. Offline navigation shows a reconnect page; personal records are never cached for offline use. Automated accessibility scans do not certify full WCAG compliance.

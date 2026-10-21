@@ -15,7 +15,7 @@ async function create(page: Page) {
   await expect(
     page.getByRole('heading', { name: 'Little lessons. Lasting habits.' }),
   ).toBeVisible();
-  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
+  await expect(page.locator('.app-layout')).toHaveAttribute('data-save-state', 'saved');
 }
 async function nav(page: Page, label: string) {
   const navigation = page.getByRole('navigation', { name: 'Mobile navigation' });
@@ -94,7 +94,7 @@ test('complete primary journey: timer, feedback, calendar, persistence and profi
   await page.getByLabel('Dog’s name').fill('Maple Bean');
   await page.getByRole('button', { name: 'Save profile' }).click();
   await expect(page.getByRole('heading', { name: 'Maple Bean’s little world.' })).toBeVisible();
-  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
+  await expect(page.locator('.app-layout')).toHaveAttribute('data-save-state', 'saved');
   await page.reload();
   await nav(page, 'Training');
   const saved = records.state;
@@ -114,7 +114,7 @@ test('difficulty recommends rest without artificial progress', async ({ page, re
   await expect(page.getByText(/Let’s rest for now/)).toBeVisible();
   await page.getByRole('button', { name: 'Save our little step' }).click();
   await expect(page.getByRole('heading', { name: 'A little rest is a good step.' })).toBeVisible();
-  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
+  await expect(page.locator('.app-layout')).toHaveAttribute('data-save-state', 'saved');
   const saved = records.state;
   expect(saved.dogs[0].sessions[0].progressSnapshot).toBe(0);
   await page.getByRole('button', { name: 'All done' }).click();
@@ -143,7 +143,7 @@ test('favorites, JSON export/import and multiple dogs remain separate', async ({
   await page.getByRole('button', { name: 'Add another dog' }).click();
   await register(page, 'Poppy');
   await page.getByRole('button', { name: 'Yes, let’s do this!' }).click();
-  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
+  await expect(page.locator('.app-layout')).toHaveAttribute('data-save-state', 'saved');
   await expect(page.getByLabel('Active dog')).toHaveValue(records.state.activeDogId!);
   await nav(page, 'Profile');
   await page.locator('input[type=file][accept="application/json,.json"]').setInputFiles(file!);

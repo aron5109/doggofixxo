@@ -7,7 +7,6 @@ import {
   Check,
   ArrowRight,
   CalendarPlus,
-  ExternalLink,
   ShieldCheck,
   X,
 } from 'lucide-react';
@@ -19,7 +18,6 @@ import {
   remainingSeconds,
   localDay,
 } from '@/lib/model';
-import { references } from '@/lib/references';
 import { Button } from './ui/button';
 import { Modal } from './ui/dialog';
 import { DogArt } from './dog-art';
@@ -196,18 +194,6 @@ export function LessonPlayer({
             <details>
               <summary>Why this approach?</summary>
               <p>{lesson.evidence}</p>
-              {lesson.sources.map((key) => (
-                <a
-                  key={key}
-                  className="source-link"
-                  href={references[key].url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {references[key].title}
-                  <ExternalLink size={13} />
-                </a>
-              ))}
             </details>
             <p className="small muted">
               These approaches complement each other; select the exercise that fits the trigger and
@@ -309,7 +295,10 @@ export function LessonPlayer({
                   className={outcome === value ? 'selected' : ''}
                   key={value}
                   aria-label={label}
-                  onClick={() => setOutcome(value)}
+                  onClick={() => {
+                    setOutcome(value);
+                    setObserved(value === 'great');
+                  }}
                   aria-pressed={outcome === value}
                 >
                   <span>{emoji}</span>
@@ -349,8 +338,8 @@ export function LessonPlayer({
               />
             </label>
             <p className="small muted">
-              Lesson milestones need observed success on six separate days. Repeated taps and timer
-              completions do not advance progress.
+              Each saved Great session with the comfortable criterion checked adds one of six
+              progress steps, including sessions on the same day. Timers alone do not add progress.
             </p>
             <Button className="full" disabled={!outcome} onClick={save}>
               Save our little step <Check size={18} />
@@ -365,6 +354,10 @@ export function LessonPlayer({
               className="feedback-dog"
             />
             <span className="eyebrow">SESSION SAVED</span>
+            <p className="progress-result" role="status">
+              {progress.percent}% lesson progress · {progress.successes}/6 comfortable Great
+              sessions
+            </p>
             <h3>
               {outcome === 'difficult'
                 ? 'A little rest is a good step.'
@@ -375,7 +368,7 @@ export function LessonPlayer({
                 ? 'Give your pup a comfortable break. Your next suggestion is in two days, with an easier exercise.'
                 : progress.complete
                   ? 'Milestones complete! Keep those good habits growing with optional weekly practice.'
-                  : 'Your pup is learning. So are you. We’ll build on comfortable moments over separate days.'}
+                  : 'Your pup is learning. So are you. Every comfortable, recorded success builds progress.'}
             </p>
             <div className="actions">
               <Button onClick={() => onSchedule(lesson, outcome!)}>

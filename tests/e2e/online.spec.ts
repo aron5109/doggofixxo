@@ -105,7 +105,7 @@ test('save failures pause further writes and keep unsaved records available for 
   records.saveStatus = 503;
   await page.getByRole('button', { name: 'Yes, let’s do this!' }).click();
   await expect(page.getByRole('alert')).toContainText('Saving failed.');
-  await expect(page.locator('.account-banner')).toHaveText('Your account needs attention');
+  await expect(page.locator('.app-layout')).toHaveAttribute('data-save-state', 'error');
   const backup = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export backup', exact: true }).click();
   const download = await backup;
@@ -128,7 +128,7 @@ test('sign-out returns to Google sign-in and leaves account records on the serve
 }) => {
   records.state = sampleState();
   await page.goto('/');
-  await expect(page.locator('.account-banner')).toHaveText(/All changes saved to your account/);
+  await expect(page.locator('.app-layout')).toHaveAttribute('data-save-state', 'saved');
   await navigate(page, 'Profile');
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page).toHaveURL(/\/signed-out$/);

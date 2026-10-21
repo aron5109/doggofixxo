@@ -39,6 +39,7 @@ import {
   updateDog,
   recordSession,
   progressFor,
+  progressAtSession,
   nextPractice,
   plusDays,
   occurrences,
@@ -64,6 +65,8 @@ import { Button } from './ui/button';
 import { Modal } from './ui/dialog';
 import { LessonPlayer } from './lesson-player';
 import { Calendar, EventEditor, type EventDraft } from './calendar';
+import { CareProfile } from './care-profile';
+import { ageInYears, togglePlayOccurrence } from '@/lib/care';
 type View = 'Home' | 'Training' | 'Calendar' | 'Tips' | 'Profile';
 const navItems = [
   { label: 'Home', icon: Home },
@@ -135,7 +138,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
     });
   }
   const accountBanner = (
-    <div className="account-banner" role="status">
+    <div className="account-save-status" role="status">
       <Cloud size={14} aria-hidden="true" />
       {error
         ? 'Your account needs attention'
@@ -217,7 +220,6 @@ export function Mellowoof({ account }: { account: { name: string } }) {
   if (!ready)
     return (
       <>
-        {accountBanner}
         {alerts}
         <div id="main" className="loading-screen">
           <BrandLogo mark decorative className="loading-brand" />
@@ -230,7 +232,6 @@ export function Mellowoof({ account }: { account: { name: string } }) {
   if (!dog || adding)
     return (
       <>
-        {accountBanner}
         {alerts}
         <Onboarding
           onConfirm={confirmDog}
@@ -308,7 +309,14 @@ export function Mellowoof({ account }: { account: { name: string } }) {
           <p>{item.subtitle}</p>
           {progress.complete && <small className="lesson-maintenance">Optional maintenance</small>}
           <div className="lesson-card-progress">
-            <div className="progress-track">
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label={`${item.title} progress`}
+              aria-valuenow={progress.percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
               <span style={{ width: `${progress.percent}%` }} />
             </div>
             <span>{progress.percent}%</span>
@@ -319,8 +327,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
   }
   return (
     <MotionConfig reducedMotion="user">
-      {accountBanner}
-      <div className="app-layout">
+      <div className="app-layout" data-save-state={error ? 'error' : pending ? 'saving' : 'saved'}>
         <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
           <button className="brand" onClick={() => navigate('Home')} aria-label="Mellowoof home">
             <BrandLogo decorative />
@@ -403,6 +410,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                     </option>
                   ))}
                 </select>
+                <ChevronRight className="dog-switch-chevron" size={15} aria-hidden="true" />
               </label>
               <button
                 className="mobile-menu icon-button"
@@ -569,7 +577,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                         <span style={{ width: `${currentProgress.percent}%` }} />
                       </div>
                       <p className="small muted">
-                        Progress follows observed comfort over separate days.
+                        Each confirmed Great session adds one of six progress steps.
                       </p>
                       <Button
                         variant="secondary"
@@ -834,7 +842,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                             <span className="badge">
                               {session.outcome === 'difficult'
                                 ? 'Rest & reset'
-                                : `${session.progressSnapshot}% progress`}
+                                : `${progressAtSession(dog.sessions, session.id)}% progress`}
                             </span>
                             <ChevronRight size={17} />
                           </button>
@@ -844,7 +852,16 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                 </>
               )}
               {view === 'Calendar' && (
-                <Calendar dog={dog} onEdit={setEventDraft} onSession={setSessionDetail} />
+                <Calendar
+                  dog={dog}
+                  onEdit={setEventDraft}
+                  onSession={setSessionDetail}
+                  onTogglePlay={(event, at, minutes) =>
+                    commit(
+                      updateDog(state, dog.id, (d) => togglePlayOccurrence(d, event, at, minutes)),
+                    )
+                  }
+                />
               )}
               {view === 'Tips' && (
                 <>
@@ -979,7 +996,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                       <p className="muted">{dog.breed}</p>
                       <div className="profile-facts">
                         <span>
-                          <strong>{dog.age}</strong> years
+                          <strong>{Number(ageInYears(dog).toFixed(1))}</strong> years
                         </span>
                         <span>
                           <strong>{dog.weight}</strong> {dog.unit}
@@ -987,6 +1004,12 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                         <span>{dog.sex}</span>
                       </div>
                       <p className="small muted">Neutered / spayed: {dog.neutered}</p>
+                      {dog.birthday && (
+                        <p className="small">Birthday: {dog.birthday} · added to Calendar</p>
+                      )}
+                      {dog.microchip && (
+                        <p className="small microchip-number">Microchip: {dog.microchip}</p>
+                      )}
                       <div className="tags">
                         {dog.concerns.map((c) => (
                           <span key={c} className="tag">
@@ -997,7 +1020,9 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                       <Button
                         variant="secondary"
                         className="full"
-                        onClick={() => setEditProfile(dog)}
+                        onClick={() =>
+                          setEditProfile({ ...dog, age: Number(ageInYears(dog).toFixed(1)) })
+                        }
                       >
                         <Edit3 size={17} /> Edit profile
                       </Button>
@@ -1015,6 +1040,7 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                           <Cloud size={22} />
                         </span>
                         <h2>Your account</h2>
+                        {accountBanner}
                         <p>
                           Signed in as {account.name}. Your dogs, training sessions and appointments
                           are saved privately in your account.
@@ -1071,6 +1097,15 @@ export function Mellowoof({ account }: { account: { name: string } }) {
                       </section>
                     </div>
                   </div>
+                  <CareProfile
+                    key={dog.id}
+                    dog={dog}
+                    onUpdate={(next) => commit(updateDog(state, dog.id, () => next))}
+                    onManual={(event) => {
+                      setEventDraft({ template: event });
+                      navigate('Calendar');
+                    }}
+                  />
                 </>
               )}
             </motion.div>
@@ -1212,7 +1247,8 @@ export function Mellowoof({ account }: { account: { name: string } }) {
             </p>
             <p>
               {Math.floor(sessionDetail.duration / 60)}m {sessionDetail.duration % 60}s active
-              practice · {sessionDetail.progressSnapshot}% progress at this session
+              practice · {progressAtSession(dog.sessions, sessionDetail.id)}% progress at this
+              session
             </p>
             <p>
               {sessionDetail.observed

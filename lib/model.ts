@@ -26,6 +26,16 @@ export const profileSchema = z.object({
     .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/)
     .optional(),
   concerns: z.array(z.enum(categories)).min(1).max(5),
+  birthday: z.iso.date().optional(),
+  microchip: z
+    .string()
+    .trim()
+    .max(30)
+    .regex(/^[A-Za-z0-9 -]*$/)
+    .optional(),
+  activityLevel: z.enum(['Low', 'Moderate', 'High']).optional(),
+  foodKcalPer100g: z.number().min(20).max(1000).optional(),
+  playTarget: z.number().int().min(20).max(60).optional(),
 });
 export const sessionSchema = z.object({
   id,
@@ -43,16 +53,29 @@ export const sessionSchema = z.object({
 export const eventSchema = z.object({
   id,
   title: z.string().trim().min(1).max(100),
-  kind: z.enum(['Training', 'Vet', 'Grooming', 'Birthday', 'Reminder']),
+  kind: z.enum(['Training', 'Vet', 'Grooming', 'Birthday', 'Reminder', 'Feeding', 'Play']),
   start: timestamp,
   timeZone: z.string().min(1).max(100),
-  repeat: z.enum(['none', 'weekly', 'monthly', 'yearly']),
+  repeat: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']),
+  repeatEvery: z.number().int().min(1).max(52).optional(),
+  repeatUntil: timestamp.optional(),
+  carePlan: z.enum(['feeding', 'bathing', 'play', 'birthday']).optional(),
+  durationMinutes: z.number().int().min(1).max(240).optional(),
   lessonId: z.string().max(80).optional(),
   notes: z.string().max(1000),
 });
+export const playSessionSchema = z.object({
+  id,
+  day: z.iso.date(),
+  minutes: z.number().int().min(1).max(240),
+  eventId: id.optional(),
+  occurrence: timestamp.optional(),
+});
+export type PlaySession = z.infer<typeof playSessionSchema>;
 export const dogSchema = profileSchema.extend({
   sessions: z.array(sessionSchema).max(1000),
   events: z.array(eventSchema).max(300),
+  playSessions: z.array(playSessionSchema).max(10000).optional(),
 });
 export const stateSchema = z
   .object({
@@ -69,7 +92,8 @@ export const stateSchema = z
     for (const dog of value.dogs) {
       if (
         new Set(dog.sessions.map((s) => s.id)).size !== dog.sessions.length ||
-        new Set(dog.events.map((e) => e.id)).size !== dog.events.length
+        new Set(dog.events.map((e) => e.id)).size !== dog.events.length ||
+        new Set((dog.playSessions || []).map((s) => s.id)).size !== (dog.playSessions || []).length
       )
         ctx.addIssue({ code: 'custom', message: 'Duplicate records.' });
     }
@@ -94,11 +118,36 @@ export function addDog(state: AppState, profile: Profile): AppState {
   return {
     ...state,
     activeDogId: profile.id,
-    dogs: [...state.dogs, { ...profile, sessions: [], events: [] }],
+    dogs: [...state.dogs, syncBirthday({ ...profile, sessions: [], events: [] })],
   };
 }
 export function updateDog(state: AppState, dogId: string, update: (dog: Dog) => Dog): AppState {
-  return { ...state, dogs: state.dogs.map((dog) => (dog.id === dogId ? update(dog) : dog)) };
+  return {
+    ...state,
+    dogs: state.dogs.map((dog) => (dog.id === dogId ? syncBirthday(update(dog), dog) : dog)),
+  };
+}
+function syncBirthday(dog: Dog, previous?: Dog): Dog {
+  const existing = dog.events.find((event) => event.carePlan === 'birthday');
+  const events = dog.events.filter((event) => event.carePlan !== 'birthday');
+  if (!dog.birthday) return existing ? { ...dog, events } : dog;
+  const start =
+    existing && previous?.birthday === dog.birthday
+      ? new Date(existing.start)
+      : new Date(`${dog.birthday}T09:00:00`);
+  if (!Number.isFinite(start.getTime())) return dog;
+  const birthday: CalendarEvent = {
+    id: existing?.id || crypto.randomUUID(),
+    title: `${dog.name}’s birthday`,
+    kind: 'Birthday',
+    start: start.toISOString(),
+    repeat: 'yearly',
+    carePlan: 'birthday',
+    timeZone: existing?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+    notes:
+      'Added automatically from the birthday in this dog’s profile. Edit the profile to change it.',
+  };
+  return { ...dog, events: [...events, birthday] };
 }
 export function localDay(value: Date | string): string {
   const date = new Date(value);
@@ -115,7 +164,6 @@ export function localInput(date: Date): string {
 export function progressFor(sessions: TrainingSession[], lessonId: string) {
   let milestone = 0;
   let successes = 0;
-  const days = new Set<string>();
   const ids = new Set<string>();
   for (const session of [...sessions]
     .filter((s) => s.lessonId === lessonId)
@@ -124,13 +172,11 @@ export function progressFor(sessions: TrainingSession[], lessonId: string) {
     ids.add(session.id);
     if (
       milestone >= 3 ||
-      session.milestone !== milestone ||
+      session.milestone > milestone ||
       session.outcome !== 'great' ||
-      !session.observed ||
-      days.has(session.day)
+      !session.observed
     )
       continue;
-    days.add(session.day);
     successes++;
     if (successes % 2 === 0) milestone++;
   }
@@ -140,6 +186,11 @@ export function progressFor(sessions: TrainingSession[], lessonId: string) {
     successes,
     complete: milestone === 3,
   };
+}
+export function progressAtSession(sessions: TrainingSession[], id: string): number {
+  const ordered = [...sessions].sort((a, b) => a.finishedAt.localeCompare(b.finishedAt));
+  const index = ordered.findIndex((session) => session.id === id);
+  return index < 0 ? 0 : progressFor(ordered.slice(0, index + 1), ordered[index].lessonId).percent;
 }
 export function recordSession(state: AppState, dogId: string, session: TrainingSession): AppState {
   return updateDog(state, dogId, (dog) => {
@@ -170,14 +221,27 @@ export function occurrences(events: CalendarEvent[], from: Date, until: Date): O
     const start = new Date(event.start);
     let date = new Date(start);
     let index = 0;
-    while (date <= until && index < 5300) {
+    const every = event.repeatEvery || 1;
+    const end =
+      event.repeat !== 'none' && event.repeatUntil
+        ? new Date(Math.min(until.getTime(), new Date(event.repeatUntil).getTime()))
+        : until;
+    // Skip old daily/weekly occurrences while preserving their local wall-clock time.
+    if (event.repeat === 'daily' || event.repeat === 'weekly') {
+      const days = (event.repeat === 'weekly' ? 7 : 1) * every;
+      index = Math.max(0, Math.floor((from.getTime() - start.getTime()) / (86400000 * days)) - 2);
+      date.setDate(start.getDate() + index * days);
+    }
+    while (date <= end && index < 100000) {
       if (date >= from) results.push({ ...event, occurrence: date.toISOString() });
       if (event.repeat === 'none') break;
       index++;
       date = new Date(start);
-      if (event.repeat === 'weekly') date.setDate(start.getDate() + index * 7);
+      if (event.repeat === 'daily') date.setDate(start.getDate() + index * every);
+      else if (event.repeat === 'weekly') date.setDate(start.getDate() + index * 7 * every);
       else {
-        const month = start.getMonth() + (event.repeat === 'monthly' ? index : index * 12);
+        const month =
+          start.getMonth() + (event.repeat === 'monthly' ? index * every : index * 12 * every);
         date.setDate(1);
         date.setMonth(month);
         const last = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();

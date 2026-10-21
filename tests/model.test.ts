@@ -74,11 +74,11 @@ describe('observed foundation and maintenance', () => {
       ).percent,
     ).toBe(0);
   });
-  it('credits only one success per local day and ignores repeated ids', () => {
+  it('credits distinct same-day sessions and ignores repeated ids', () => {
     const first = practice(20);
-    expect(progressFor([first, first, practice(20)], 'calm-at-home').percent).toBe(17);
+    expect(progressFor([first, first, practice(20)], 'calm-at-home').percent).toBe(33);
   });
-  it('requires six distinct days across sequential milestones', () => {
+  it('requires six confirmed sessions across sequential milestones', () => {
     const sessions = Array.from({ length: 6 }, (_, i) =>
       practice(20 + i, { milestone: Math.floor(i / 2) }),
     );
