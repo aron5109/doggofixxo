@@ -3726,21 +3726,77 @@ details h4 {
   font-size: 12px;
 }
 .earned-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin-bottom: 15px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+  margin: 20px 0 24px;
 }
 .earned-badge {
-  padding: 10px 13px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: #e5eedc;
-  border-radius: 12px;
-  font-size: 12px;
-  color: var(--green-dark);
-  font-weight: 800;
+  margin: 0;
+  padding: 18px 12px 16px;
+  text-align: center;
+  background: linear-gradient(155deg, #fffdf7, #fff5dd);
+  border: 1px solid #e4cd92;
+  border-radius: 18px;
+  min-width: 0;
+}
+.earned-badge figcaption strong {
+  display: block;
+  color: #59441c;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.earned-badge figcaption > span {
+  display: block;
+  margin-top: 5px;
+  color: #75613c;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+}
+.ribbon-award {
+  position: relative;
+  width: 112px;
+  aspect-ratio: 160 / 184;
+  margin: 0 auto 8px;
+  filter: drop-shadow(0 4px 4px #7853171c);
+}
+.ribbon-award > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ribbon-award .ribbon-award-logo {
+  position: absolute;
+  width: 36%;
+  height: auto;
+  left: 50%;
+  top: 39%;
+  transform: translate(-50%, -50%);
+}
+.ribbon-award.is-locked {
+  filter: none;
+}
+.ribbon-award.is-locked .ribbon-award-logo {
+  opacity: 0.5;
+}
+.milestone-badge > .ribbon-award {
+  width: 80px;
+  margin-bottom: 12px;
+}
+@media (max-width: 480px) {
+  .earned-badges {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .earned-badge {
+    padding: 14px 9px;
+  }
+  .earned-badge .ribbon-award {
+    width: 94px;
+  }
+  .earned-badge figcaption strong {
+    font-size: 12px;
+  }
 }
 .badge-grid {
   display: grid;
@@ -3755,8 +3811,8 @@ details h4 {
   background: #f7f8f2;
 }
 .milestone-badge.earned {
-  background: #e5eedc;
-  border-color: #a9bca2;
+  background: #fff8e6;
+  border-color: #e4cd92;
 }
 .milestone-badge > span {
   font-size: 25px;

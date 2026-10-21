@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import {
   CalendarPlus,
-  Check,
   ChevronLeft,
   ChevronRight,
   Droplets,
@@ -22,6 +21,7 @@ import {
 } from '@/lib/care';
 import { Button } from './ui/button';
 import { Modal } from './ui/dialog';
+import { RibbonAward } from './ribbon-award';
 
 const labels: Record<CareKind, string> = {
   feeding: 'feeding',
@@ -561,9 +561,13 @@ export function CareProfile({
         </p>
         <div className="earned-badges">
           {earned.map((badge) => (
-            <span className="earned-badge" key={badge.id}>
-              {badge.emoji} {badge.title} <Check size={14} />
-            </span>
+            <figure className="earned-badge" key={badge.id}>
+              <RibbonAward />
+              <figcaption>
+                <strong>{badge.title}</strong>
+                <span>Milestone earned</span>
+              </figcaption>
+            </figure>
           ))}
         </div>
         <details>
@@ -573,7 +577,7 @@ export function CareProfile({
           <div className="badge-grid">
             {badges.map((badge) => (
               <article className={`milestone-badge ${badge.earned ? 'earned' : ''}`} key={badge.id}>
-                <span aria-hidden="true">{badge.emoji}</span>
+                <RibbonAward earned={badge.earned} />
                 <h3>{badge.title}</h3>
                 <p>{badge.description}</p>
                 <progress max={100} value={badge.percent} aria-label={`${badge.title} progress`} />
